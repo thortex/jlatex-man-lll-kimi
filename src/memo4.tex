@@ -1,0 +1,143 @@
+\chapter{\LaTeX メモ帳}
+
+\section{汎用的なくり返し式}% \loop/\repeat, \@whilenum, \@whiledim, \@whilesw
+通常のプログラミング言語の場合は、次のような for 文による繰り返し式を使
+う場面がしばしばあります。
+\begin{inputex}
+int i, sum = 0;
+for (i = 1; i < 11; i++){
+  sum := sum + i;
+}
+\end{inputex}
+しかし、これは次のように while 文でも同様な処理を行なえます。
+\begin{inputex}
+int i, sum;
+sum = 0;
+i = 1;
+while (i < 11){
+   sum := sum + i;
+}
+\end{inputex}
+\TeX は必要最低限の繰り返し式である \C{loop}/\C{repeat} なるコマンドを
+用意しています (これがあれば for 文や while 文を簡単に用意することが可能)。
+\begin{Syntax}
+\ttlb \va{初期化文} \C{loop} \va{繰り返し文} \va{条件文} 
+\va{実行文} \C{repeat} \ttrb
+\end{Syntax}
+別に初期化文とかはいらんです。
+上記の 1 から 10 の総和を求めるためには次のようにします。
+\begin{inputex}
+\makeatletter
+\@tempcnta=\z@
+\@tempcntb=\z@
+\loop \advance \@tempcntb \@ne \ifnum \@tempcntb < 11\relax
+  \advance \@tempcnta \@tempcntb \repeat
+総和: \@arabic\@tempcnta
+\makeatother
+\end{inputex}
+\C{loop} の中における \va{繰り返し文} は \va{実行文} よりも先に実行されます。
+これがいやなときは do-while 文などを定義します。
+
+\begin{Exe}
+次の実行結果から \C{repeat} と \C{fi} の役割について考えてください．
+\begin{inputex}
+\makeatletter
+\@tempcnta=\z@ 
+\loop \ifnum \@tempcnta<10
+  \the\@tempcnta\space
+  \advance \@tempcnta \@ne
+\repeat
+\def\check@tempcnta{%
+  \ifnum \@tempcnta<10
+    \the\@tempcnta\space
+    \advance \@tempcnta \@ne
+    % 再帰的に自分自分を呼び出す
+    \check@tempcnta
+  \fi
+}
+\@tempcnta=\z@
+\check@tempcnta
+\makeatother
+\end{inputex} 
+実行結果は「0 1 2 3 4 5 6 7 8 9  0 1 2 3 4 5 6 7 8 9」となることから、
+\C{loop}/\C{repeat} と \C{ifnum}/\C{fi} による方法はかなり似ているという
+事が分かると思います。
+\end{Exe}
+
+
+\C{loop}/\C{repeat} では質素過ぎるので \LaTeX には \C{@whilenum} と
+\C{@whiledim} が用意されています。
+\begin{Syntax}
+\C{@whilenum} \va{整数値の比較式}  \C{do}\va{処理内容} \\
+\C{@whiledim} \va{長さの比較式}    \C{do}\va{処理内容}
+\end{Syntax}
+まぁ、とりあえずは以下の使用例を吟味してくださいな。
+\begin{inputex}
+\makeatletter
+\@tempcntb=\z@
+\@tempcnta=\z@
+\@whilenum \@tempcntb <11\relax \do{%
+   \advance \@tempcnta \@tempcntb
+   \advance \@tempcntb \@ne
+}総和: \@arabic\@tempcnta\par
+\@tempdima=.4pt
+\@whiledim \@tempdima <1em\relax \do{%
+   \vrule width \@tempdima height 1em \kern \@tempdima
+   \advance \@tempdima \p@
+}\par
+\@tempdima=.4pt
+\@whiledim \@tempdima <.5\linewidth\relax \do{%
+   \hrule width \@tempdima height .4pt \par
+   \multiply \@tempdima \tw@
+}\par
+\makeatother
+\end{inputex}
+
+\begin{Syntax}
+\C{@whilesw} \va{スイッチ} \C{fi} \va{処理内容}
+\end{Syntax}
+
+\begin{inputex}
+\newif\ifDOUYO
+\DOUYOtrue
+\@whilesw \ifDOUYO \fi {ほげほげ\DOUYOfalse}
+\@whilesw \ifDOUYO \fi {げほげほ\DOUYOtrue}
+\end{inputex}
+
+
+
+
+\section{\textsf{jsclasses} で図表番号の後にコロンを表示したいとか}
+図表番号のスタイルは \C{thefigure}, \C{thetable} で再定義できる。
+\begin{inputex}
+\renewcommand*\thefigure{\@arabic\c@figure}
+\renewcommand*\thetable{\@arabic\c@table}
+\end{inputex}
+スタイルに関しては \C{fnum@figure}, \C{fnum@table} で決められる。
+\C{figurename}, \C{tablename} はそれぞれクラスファイルで定義されている
+ものとする。
+%(\def\figurename{図}, \def\tablename{表})
+\begin{inputex}
+\documentclass[a4j]{jsarticle}
+\makeatletter
+\def\fnum@figure{\figurename\nobreak\thefigure:}
+\def\fnum@table{\tablename\nobreak\thetable:}
+\makeatother
+\begin{document}
+\begin{figure}[htbp]
+\caption{ほげほげ}
+\end{figure}
+\begin{table}[htbp]
+\caption{どれどれ}
+\end{table}
+\end{document}
+\end{inputex}
+スタイルを「第 8 図」などとしたければ
+\begin{inputex}
+\def\prefigurename{第}
+\def\postfigurename{図}
+\def\fnum@figure{\prefigurename \nobreak \thefigure \nobreak 
+  \postfigurename}
+\end{inputex}
+とすれば良いだろう。
+

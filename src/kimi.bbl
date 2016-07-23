@@ -1,0 +1,69 @@
+\begin{thebibliography}{10}
+
+\bibitem{base.source2e}
+Johannes Braams, David Carlisle, Alan Jeffrey, Leslie Lamport, Frank
+  Mittelbach, Chris Rowley, and Rainer Shopf.
+\newblock {\em {\LaTeXe} Sources}, 2001
+
+\bibitem{anothermanual3}
+江口庄英.
+\newblock {\em Ghostscript Another Manual}.
+\newblock ソフトバンク, 1997
+
+\bibitem{texbook}
+Donald~E. Knuth.
+\newblock 改訂新版 {\TeX} ブック.
+\newblock アスキー, 1991.
+\newblock 斎藤信男監修. 鷺谷好輝訳
+
+\bibitem{metafontbook}
+Donald~E. Knuth.
+\newblock {\MF} ブック.
+\newblock アスキー, 1994.
+\newblock 鷺谷好輝訳. 007.64/Kn
+
+\bibitem{anothermanual2}
+乙部厳己, 江口庄英.
+\newblock {\em {\pLaTeXe} for Windows Another Manual Vol.~2 Extended Kit}.
+\newblock ソフトバンク, 1997
+
+\bibitem{anothermanual1}
+乙部厳己, 江口庄英.
+\newblock {\em {\pLaTeXe} for Windows Another Manual Vol.~1 Basic Kit 1999}.
+\newblock ソフトバンク, 1998
+
+\bibitem{macroclass01}
+ページ・エンタープライゼズ.
+\newblock {\LaTeXe}【マクロ\&クラス】プログラミング 基礎編.
+\newblock ページエンタープライゼズ, 2002
+
+\bibitem{base.modguide}
+{\LaTeX}3~Project Team.
+\newblock {\em Modifying {\LaTeX}}, 1995
+
+\bibitem{base.clsguide}
+{\LaTeX}3~Project Team.
+\newblock {\em {\LaTeXe} for class and package writers}, 1999
+
+\bibitem{base.fntguide}
+{\LaTeX}3~Project Team.
+\newblock {\em {\LaTeXe} font selection}, 2000
+
+\bibitem{base.usrguide}
+{\LaTeX}3~Project Team.
+\newblock {\em {\LaTeXe} for authors}, 2001
+
+\bibitem{base.cfgguide}
+{\LaTeX}3~Project Team.
+\newblock {\em Configuration options for {\LaTeXe}}, 2001
+
+\bibitem{base.cyrguide}
+Vlandimir Volovich, Werner Lemberg, and {\LaTeX}3~Project Team.
+\newblock {\em Cyrillic languages support in {\LaTeX}}, 1999
+
+\bibitem{macroclass02}
+吉永徹美.
+\newblock {\LaTeXe}【マクロ\&クラス】プログラミング 実践編.
+\newblock ページエンタープライゼズ, 2003
+
+\end{thebibliography}

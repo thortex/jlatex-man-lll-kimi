@@ -1,0 +1,187 @@
+\chapter{マクロ解体}
+
+\section{\LaTeX\ 標準パッケージ概説}
+
+\subsection{\Y{indentfirst}}
+\LaTeX\ は見出しの後の字下げを\C{if@afterindent}なるブール変数で
+制御しています。欧文のクラスファイルでは\C{chapter}の後や\C{section}
+後は時下げしないスタイルもあります。\LaTeX\ の\Y{article}, \Y{report}, 
+\Y{book}などのクラスファイルは\C{chapter}や\C{section}の見出し直後に
+字下げしないようになっています。これを簡単に字下げするようにするには
+「字下げしない」という命令に対して「字下げする」という命令を代入すれば
+良いことになりますので、次の2行を書くだけになります。
+\begin{inputex}
+\let\@afterindentfalse\@afterindenttrue
+\@afterindenttrue	
+\end{inputex}
+どうです? 簡単ですよね?  \Hito{David Carlisle}による\Y{indentfirst}
+も全く同じ記述になっています。
+
+\subsection{\Y{alltt}}
+べた書き環境の\E{inputex}環境がありますが、タブ記号や改行記号
+などを出力したいときにはちょっと不便です。この場合は
+\Hito{Johannes Braams}の\Y{alltt}パッケージが使えます。
+これは、`\verb|\|'、`\verb|{|'、 `\verb|}|'の三つの命令だけがそ
+のまま使えるという\E{alltt}環境を提供します。
+これと同じような環境を自分でも定義してみましょう（ただし、
+様々な状況を全く無視した簡易版です）。
+まず`\verb|\|'、`\verb|{|'、 `\verb|}|'以外の文字は
+カテゴリーコードを変更するために\C{mysanitize}命令を
+定義します（\C{@sanitize}命令はバックスラッシュのカテゴリ
+コードも変更するので、ここでは使いません）。
+\begin{inputex}
+\makeatletter
+\newcommand*\mysanitize{%
+  \@makeother\$ \@makeother\& \@makeother\# \@makeother\^%
+  \@makeother\_ \@makeother\% \@makeother\~}
+\makeatother
+\end{inputex}
+次に対象となる\E{myTT}環境を定義します。安全のため
+\E{trivlist}環境の中に入れます。さらに、定義の変更を
+局所的にするために\C{begingroup}と\C{endgroup}でサンドイッチ
+します。さらに先ほどの\C{mysanitize}命令と\C{ttfamily}命令を
+使用します。ここで問題になるのは改行文字\verb|^^M|ですが、
+これはすでに\C{obeylines}命令を使うことで改行文字を改段落\C{par}
+命令を用います。ただし、改段落にするので\C{parindent}には0\,pt
+を代入しておきます。
+\begin{inputex}
+\newenvironment{myTT}{%
+  \trivlist\item\relax\begingroup%
+    \ttfamily\mysanitize%
+    \obeylines\parindent=0pt}%
+  {\endgroup\endtrivlist}%
+\end{inputex}
+これで\E{myTT}環境の定義に終了です。
+\begin{inputex}
+\begin{myTT}
+$ & # ^ _ % ~ \( x\sp{2}\neq x\sb{2} \)
+This line will be in new line.
+\end{myTT}	
+\end{inputex}
+さて、実際には\Y{alltt}パッケージではもう少し丁寧なことを
+やっているので、興味のある人は見ておいてください。
+
+\subsection{\Y{afterpage}}
+\LaTeX\ の浮動体 (floats) 制御では満足の行く場所に、
+図表を配置することができないことがしばしばあります。
+このような場合\C{clearpage}を使うことが考えられますが、
+ページに対する影響が多いためお得とは言いがたいでしょう。
+この場合とりあえず、次のページから図表を配置してほしい
+という命令があれば助かります。これを可能にするのが
+\Hito{David Carlisle}の\Y{afterpage}パッケージで、
+\begin{inputex}
+\afterpage{\clearpage}
+\end{inputex}
+のように使います。
+さらにある図を現在のページが組み終わった後に出力したいという
+ならば
+\begin{inputex}
+\afterpage{\clearpage\begin{figure}[!h] ... \end{figure}}
+\end{inputex}
+のように使うことができます。
+
+実際、この\Y{afterpage}パッケージは\TeX\ の\C{output}などと
+関わっているため、この冊子では深く取り扱いません。
+
+\subsection{\Y{xspace}}
+用語などを統一するという用途で次のような命令を定義することがあります。
+\begin{inputex}
+\newcommand*\pdftex{PDF\TeX}
+\end{inputex}
+これを次のように用いてしまうと、意図しない出力になります。
+\begin{inputex}
+\pdftex is a very large system.	
+\end{inputex}
+\begin{quote}
+\newcommand*\pdftex{PDF\TeX}
+\pdftex is a very large system.	
+\end{quote}
+
+このような場合は次の文字がスペースの場合は自動的に空白を挿入し、
+句読点や約物の場合はスペースを入れないようにしてほしいものです。
+実際に\Hito{David Carlisle}の\Y{xspace}パッケージでは次の
+ような処理をしてします。%
+\Cidx{futurelet}%
+\Cidx{@let@token}%
+\begin{inputex}
+\DeclareRobustCommand\xspace{\futurelet\@let@token\@xspace}
+\def\@xspace{%
+  \ifx\@let@token\bgroup\else
+  \ifx\@let@token\egroup\else
+  ...
+  \ifx\@let@token\@sptoken\else
+ \space
+ \fi\fi ... \fi}
+\end{inputex}
+この中に登録されていないスペースを入れてほしくない文字は、
+自分で追加することができます。
+
+先ほどの記述は次のようになります。
+\begin{inputex}
+%\usepackage{xspace}
+\renewcommand*\pdftex{PDF\TeX\xspace}
+\pdftex is a very large system.	
+He may be a \pdftex{}nician.
+\end{inputex}
+\begin{quote}
+\newcommand*\pdftex{PDF\TeX}
+\pdftex\ is a very large system.	
+He may be a \pdftex{}nician.
+\end{quote}
+
+\begin{inputex}
+\def\@test{[\@nexttoken]}
+\let\@nexttoken=\LaTeX
+\@test \LaTeX
+%
+\futurelet\@nexttoken \@test \LaTeX
+\def\test{\futurelet\@nexttoken \@test}
+\test hoge \test geho 
+\end{inputex}
+
+\begin{inputex}
+% 未来の\pp{後続する}トークンがなんだか分からん時に使える。
+\def\addspace{\futurelet\@next@token \@addspace}
+\def\@addspace{(\@next@token)}
+\def\tex{\TeX\addspace}
+I use \tex all the time and I love \tex.\par
+\def\@addspace{\ifx\@next@token.\else\space\fi}
+I use \tex all the time and I love \tex.
+\end{inputex}
+
+
+\subsection{\Y{calc}}
+
+%\subsection{ブール型変数の簡易な使用方法}
+つぎのような定義をしておくと、\LaTeX のブール値を扱いやすくできます。
+\begin{inputex}
+\newcommand*\newbool[1]{%
+  \expandafter\newif\csname if#1\endcsname\relax}
+\newcommand{\TorF}[3]{\csname if#1\endcsname\relax #2\else#3\fi}
+\newcommand{\ifTrue}[2]{\csname if#1\endcsname\relax #2\fi}
+\newcommand{\ifFalse}[2]{\csname if#1\endcsname\else #2\fi}
+\newcommand*{\True}[2]{\csname #1true\endcsname\relax}
+\newcommand*{\False}[2]{\csname #1false\endcsname\relax}
+%
+\newbool{hoge}
+\TorF{hoge}{真です、}{偽です。}
+\True{hoge} \ifTrue{hoge}{真ですね。}
+\False{hoge} \TorF{真だ。}{偽だ。}
+\end{inputex}
+さてさて、結果はどうなるか。
+
+しかし、このままでは未定義のブール値も構わず処理します。
+\begin{inputex}
+\newbool{geho}
+\ifFalse{gege}{あれれ}{およよ}
+\end{inputex}
+そこで、定義済みかどうかを判定する処理を付け加え、もし未定義ならば
+処理を中断するようにしましょう。
+
+
+%\section{Re: 図表参照時に「図」や「表」を自動的につけたい}
+%もう解決されたと思いますが、\Y{prettyref}と言って
+%\begin{verbatim}
+%CTAN/macros/latex/contrib/supported/prettyref/
+%\end{verbatim}
+%に同じようなものがあるのでした。

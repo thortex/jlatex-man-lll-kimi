@@ -1,0 +1,293 @@
+\section{\TeX 解剖}
+\TeX は生真面目過ぎて一般ユーザには分かりにくいプログラムなので\Z{消化器官}
+で類推するという\Z{伝統}的な方法が取られていました。私もこれ以上の類推を
+思い付かないので、これで解説しましょう。これは \TeX を\Z{解剖学}的に
+\Z{目}、\Z{口}、\Z{食道}、\Z{胃}、\Z{腸}の五つに準える事になります。
+\TeX が原稿ファイル \Va{file}{tex} に喰らいついた時から出力ファイル
+\Va{file}{dvi} が作成されるまでに、いったいどのような過程を経ているのか、
+以下の五つの流れを御覧になってください。
+\begin{enumerate}
+ \item 「{目} (\Z{eye}\footnote{一度に一文字しか見ることはないので、目は
+一つあれば十分でしょう。})」は入力ファイル \Va{file}{tex} を発見
+すると好物のそれを食べる\pp{おやおや、私は \TeX の好みは熟知していますよ}。
+そうするとすばやく胃まで運ぶように命令する。
+ \item 「{口} (\Z{mouth})」は\Va{file}{tex} に含まれている文字を
+食道を通りやすいように\Z{トークン}に噛み砕く。
+ \item 「{食道} (\Z{gullet})」は口から運ばれてきたトークンの
+マクロや条件判断を可能な限り展開・置換して胃で吸収しやすいように
+\Z{トークンリスト}に変換する。
+ \item 「{胃} (\Z{stomach})」ははるばる口から運ばれてきた
+トークンリストをさらに消化して一つのコマンドで構成される小さな\Z{ブロック}を
+作る。ブロックは予め腸で消化しやすいように\Z{改段落}、\Z{改ページ}をして
+おく。
+ \item 「{腸} (\Z{intestine})」は胃で組み上げられたページをデバイスドラ
+イバが解釈できる \Z{DVI} 形式に変換し出力ファイル \Va{file}{dvi} に
+書き込む。
+\end{enumerate}
+
+これをざっくり理解するためには、すでにある程度 \TeX の組版のしくみを
+理解している必要があるというのは残念なことであるが、とりあえず以下の
+記述を云々。
+\begin{inputex}
+\tracingall% 解剖するヨ
+\nopagenumbers % ノンブルはなしよ
+V\kern-.4em V% V が二つで W もどき
+\vfill\eject% 改ページする
+\def\hoge{V\hfill V}% マクロ \hoge を定義する
+\hoge\par% 段落終了
+\bye% 終わり
+\end{inputex}
+上記のファイル \Va{file}{tex} を \type{tex file}とでもすれば、
+\Va{file}{log} に色々とデータが書き出されることになります。
+その前に、焦らずに入力ファイル \Va{file}{tex} が \TeX の「目」
+で見られたときにはどのようになっているのか確認してください。
+さらに「口」に入ったとき、次のように噛み砕かれます。
+\begin{quote}
+\begin{ttfamily}
+\newcommand*\R[2]{#1${}_{#2}$}
+\fbox{tracingall} \par
+\fbox{nopagenumbers} \par
+\R{V}{11} \fbox{kern} \R{-}{12} \R{.}{12} \R{4}{11} \R{e}{12} \R{m}{12} 
+\R{\textvisiblespace}{10} \R{V}{11} \fbox{vfill} \fbox{eject} \par
+\fbox{def} \fbox{hoge} \R{\ttlb}{1} \R{V}{11} \fbox{hfill} 
+\R{V}{11} \R{\ttrb}{2} \par
+\fbox{hoge} \fbox{par} \fbox{bye}
+\end{ttfamily}
+\end{quote}
+
+これらからページを構成するための要素が決定されます。\pp{\C{tracingall}
+とか \C{nopagenumbers} はページを直接構成するための要素ではありません}。
+\begin{inputex}
+{vertical mode: the letter V}
+{horizontal mode: the letter V}
+{\kern}
+{the letter V}
+{\vfill}
+{\par}
+{vertical mode: \vfill}
+{\par}
+{\penalty}
+\end{inputex}
+垂直モードでの文字`V'は「水平モードに移行する」という役割りもあるようで
+す。そうしてから文字`V'が組まれるようです。\C{par} の後も垂直モードに
+移行しているのが分かります。
+
+
+「食道」ではマクロなどがバラバラにされてしまいます。
+\begin{inputex}
+\nopagenumbers ->\footline{\hfil}
+\eject ->\par \break 
+\break ->\penalty -\@M 
+\hoge ->V\hfill V
+\bye ->\par \vfill \supereject \end 
+\supereject ->\par \penalty -\@MM 
+\end{inputex}
+
+
+「胃」で最終的に組み上げられた1ページ目は次のようになります。
+\begin{inputex}
+Completed box being shipped out [1]
+\vbox(667.20255+0.0)x469.75499
+.\vbox(0.0+0.0)x469.75499, glue set 14.0fil
+..\glue -22.5
+..\hbox(8.5+0.0)x469.75499, glue set 469.75499fil
+...\vbox(8.5+0.0)x0.0
+...\glue 0.0 plus 1.0fil
+..\glue 0.0 plus 1.0fil minus 1.0fil
+.\vbox(643.20255+0.0)x469.75499, glue set 633.20255fill
+..\glue(\topskip) 3.16669
+..\hbox(6.83331+0.0)x469.75499, glue set 438.7549fil
+...\hbox(0.0+0.0)x20.0
+...\tenrm V
+...\kern -3.99994
+...\tenrm V
+...\penalty 10000
+...etc.
+..\glue 0.0 plus 1.0fill
+.\glue(\baselineskip) 24.0
+.\hbox(0.0+0.0)x469.75499, glue set 469.75499fil
+..\glue 0.0 plus 1.0fil
+\end{inputex}
+先頭のピリオドはボックスの入れ子の深さを表しています。
+一番最初の \C{vbox} がページ全体をいれるための大きなボックスです。
+2ページ目も同じ様に組まれます。
+
+
+
+\endinput
+
+◎空白
+\kern x xだけの空白をいれる。水平モード（段落の始めなど）のときは横方向、
+垂直モード（段落の途中など）のときは縦方向の空白になる。
+改行（水平モード）、改ページ（垂直モード）直後は無効。
+
+◎横方向の空白
+
+
+\C{llap}と\C{rlap}の理解
+\begin{inputex}
+\def\llap#1{\hbox to 0pt{\hss#1}}
+\def\rlap#1{\hbox to 0pt{#1\hss}}
+\end{inputex}
+
+\begin{InOut}
+Y\llap{=}\par% 成功
+\rlap{=}Y\par%ゴバ━━━━(o∀o)━━━━ク!!!!
+\end{InOut}
+
+\hssいくらでも伸び縮みする水平グルー。
+\vssいくらでも伸び縮みする垂直グルー。
+
+\leaders\箱A\グルーA
+箱を箱Aで指定されたパターンの繰り返しによって埋め、余ったスペースに
+グルーAを挿入する。
+\cleaders\箱A\グルーA
+箱を箱Aで指定されたパターンの繰り返しによって埋め、両端にグルーAを
+挿入して、リーダをセンタリングする。
+\xleaders\箱A\グルーA
+箱を箱Aで指定されたパターンの繰り返しによって埋め、各パターン間に
+グルーAを挿入して、リーダを箱の中で一様に引き延ばす。
+
+
+\eqno{括弧付き数式番号}
+{}内を数式番号と見なして右端に印刷する。
+\leqno{括弧付き数式番号}
+{}内を数式番号と見なして左端に印刷する。
+数式番号をつけるときは、ディスプレイ用数式モードに移行するのに
+\[ ではなく$$を用いる必要がある。
+
+\makebox(幅,高さ)[位置の指定]{文章}
+長方形の領域を確保し、その中に文章出力する。位置の指定を省略すると
+センタリングして出力する。箱の中に文章が収まる必要はない。
+☆位置の指定
+r:文章の右端が長方形の右辺と一致するように出力する。
+l:文章の左端が長方形の左辺と一致するように出力する。
+t:文章の上端が長方形の上辺と一致するように出力する。
+b:文章の下端が長方形の下辺と一致するように出力する。
+\framebox(幅,高さ)[位置の指定]{文章}
+makeboxとほぼ同じ。長方形の罫線（実線）を実際に出力する。
+\dashbox{長さ}(幅,高さ)[位置の指定]{文章}
+makeboxとほぼ同じ。長方形の罫線（点線）を実際に出力する。
+長さには点線の１つの線分の長さを指定する。
+
+\raise 長さ\箱
+箱を長さ分だけ持ち上げる。
+\lower 長さ\箱
+箱を長さ分だけ下げる。
+
+\hbox{中身}
+{}の中の箱を横にならべる。中身は水平（ＬＲ）モード。
+横幅を指定するときには \hbox to 5cm{中身}のようにする。
+中身を\hfillではさむと、箱のなかでセンタリングができる。
+
+\vbox{中身}
+{}の中の箱を縦にならべる。できた箱は上に延びる。
+高さを指定するときには \vbox to 5cm{中身}のようにする。
+{}の中は内部垂直モード。
+
+\vtop{中身}
+{}の中の箱を縦にならべる。できた箱は下に延びる。
+高さを指定するときには \vtop to 5cm{中身}のようにする。
+{}の中は内部垂直モード。
+
+\vcenter{中身}
+{}の中の箱を縦にならべる。できた箱は上下にセンタリングされる。
+高さを指定するときには \vcenter to 5cm{中身}のようにする。
+{}の中は内部垂直モード。
+
+\hsize\vboxなどで横幅を指定したいときに設定する。
+例 \vbox{\hsize=5cm ...}
+
+\leavevmode垂直モードから水平モードに移る。
+\hbadnessunderfull \hboxの警告を出すしきい値。
+\vbadnessunderfull \vboxの警告を出すしきい値。
+\hfuzzoverfull \hboxの警告を出すしきい値。
+\vfuzzoverfull \vboxの警告を出すしきい値。
+
+\rlap\hbox to 0pt{...\hss}と同じ。...の先頭まで戻り、
+そこから上書きする。文字を重ねるのに便利。
+
+\llap\hbox to 0pt{\hss...}と同じ。\rlapと似た効果を得る。
+
+\smash\vboxなどにおいてその中身の高さと深さをゼロにする。
+
+
+
+\csname XXX\endcsname
+\XXXというコントロールシーケンスを生成する。初期値は\relax。
+\@namedef{cmd}{マクロ定義文字列}
+\defと同じだが、cmdには数字や特殊文字や引数で与えられた文字列も
+使用できる。呼び出すときは \nameuse{cmd} を使うが、cmdが特殊文字や
+数字を含まないときには \cmd で呼び出すこともできる。
+
+\let\macroA=\macroBマクロＡをマクロＢに代入する。
+
+
+\relax 何もしないプリミティブ。以下のような場合に用いる。
+１．数字や長さやファイル名などを表す文字列の終りを表す。
+　　文字列変数を展開するときにはつけるべき。
+２．マクロが展開されないようにする。
+３．コントロールシーケンスが定義されているかどうか調べる。
+
+\empty 何もしないマクロ。以下のような場合に用いる。
+１．リストの始めや終りを表す。
+２．#n で得た引数が空かどうか調べる。（\ifx を使う）
+
+\@gobble 何もしないマクロ。引数を１つとる。
+\@gobbletwo 何もしないマクロ。引数を２つとる。
+これらを \let で別のマクロに代入するとそのマクロは無効になる。
+\typeout{文字列} 画面に文字列を表示する。
+
+\expandafter\macro1\macro2  後ろのマクロを前のマクロより先に展開する。
+\theトークンリストパラメタやトークンリストレジスタの内容を呼び出す。
+例えば\the\c@counterとするとカウンタの値のアラビア数字表現が得られる。
+
+\@ifnextchar　現在定義中のマクロが展開されるとき、その後ろの文字によって
+挙動を変える。
+\def\anymacro{ \@ifnextchar[{\cmd1}{\cmd2]} }となっていれば
+\anymacro に続く文字が [ であれば \cmd1 を展開し、そうでなければ
+\cmd2 を展開する。引数は \cmd1,\cmd2 にそのまま送られる。
+オプションを持つマクロを定義するのに用いたり、
+引数のデフォルトを設定するのに用いる。指定文字に { を使いたいときは
+\bgroup を指定する。
+
+\@ifstar   現在定義中のマクロに * がついているかどうかで挙動を変える。
+\def\anymacro{ \@ifstar{\cmd1}{\cmd2} }となっていれば、
+\anymacro は \cmd1 \anymacro* は \cmd2 となる。
+引数は\cmd1,\cmd2にそのまま送られる。
+
+\@ifdefinable{\cmd}{作業}
+\cmdがコントロールシーケンスの名前として適当かどうかを判断し、
+適当なら第二引数の作業を行なう。
+
+\@ifundefined{cmd}{作業１}{作業２}
+\cmdが未定義（\relax）なら作業１を実行し、定義されていれば
+作業２を実行する。
+
+\@for\cmd:=#1\do{\cmdに対する処理}
+引数 #1 がコンマ(,)で区切られて複数ある場合、順次\cmdに代入して
+同じ処理を繰り返す。
+
+\@tfor\cmd:=#1\do{\cmdに対する処理}
+オプション引数をパターンマッチングを使って一区切りづつ読み込んで
+処理する。
+
+\@whilenum 条件文\do{処理}
+条件文が真である限り処理を繰り返す。条件文は \ifnum と同じもの。
+
+\@whiledim 条件文\do{処理}
+条件文が真である限り処理を繰り返す。条件文は \ifdim と同じもの。
+
+\begingroup
+\bgroupグループの始め。{ と同じ。
+
+\endgroup
+\egroupグループの終り。} と同じ。
+
+
+
+\endinput
+
+\Cmd{AtBeginDocument}\pa{要素}\\
+\Cmd{AtEndDocument}\pa{要素}\\
+\Cmd{AtBeginDvi}\pa{スペシャル}

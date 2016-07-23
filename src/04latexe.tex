@@ -1,0 +1,469 @@
+\chapter{\LaTeX 解体}
+
+  \subsection{\LaTeX 流の定義}
+
+マクロの \va{制御綴}にアルファベット\pp{のカテゴリーコードを与えられた}
+以外の文字、例えばアットマーク `@'やコロン `:' などが含まれていると、カ
+テゴリーコードが異なるので、正しく定義できません。
+\begin{inputex}
+\def\h@ge!h@ge{ほげほげ}
+\end{inputex}
+上記の \cmd{h@ge!h@ge} は アットマークのカテゴリコードが変更されて
+いたとしても感嘆符 `!' にて文字の区切りができるので、 \cmd{h@ge} と
+その後には \str{!h@ge} が必ず伴って用いられるという意味になってしまいま
+す。
+
+どのような記号が含まれていても、その\va{制御綴}でマクロを定義したいとき
+は次のようにします。
+\begin{inputex}
+\def\mydef#1#2{\expandafter\def\csname #1\endcsname{#2}}
+\def\myuse#1{\csname #1\endcsname}
+\mydef{hoge!hoge}{ほげほげ}
+\myuse{hoge!hoge}
+\end{inputex}
+
+\begin{Syntax}
+\C{@namedef}\pa{コマンド名} \\
+\C{@nameuse}\pa{コマンド名}
+\end{Syntax}
+
+\begin{inputex}
+\def\@namedef#1{\expandafter\def\csname #1\endcsname} 
+\def\@nameuse#1{\csname #1\endcsname}
+\end{inputex}
+
+\begin{Syntax}
+\C{@ifnextchar} \va{文字}\pa{真の場合}\pa{偽の場合}  \\
+\C{@ifstar} \pa{真の場合}\pa{偽の場合}  \\
+\C{@dblarg}\pa{コマンド名}\pa{引数} % -> \anycs[arg]{arg}
+\end{Syntax}
+
+\C{@ifstar} と \C{@ifnextchar} の使い方
+\begin{inputex}
+\documentclass{article}
+\makeatletter
+\def\hoge{\@ifstar{star \@hoge}{\@hoge}}
+\def\@hoge{\@ifnextchar[{\@@hoge}{\@hoge[\@empty]}}
+\def\@@hoge[#1]#2{[#1](#2)}
+\makeatother
+\begin{document}
+\hoge[do]{re}\par
+\hoge*[a]{jo}\par
+\hoge{sfoa}\par
+\hoge*{sfal}\par
+\end{document}
+\end{inputex}
+
+
+
+次のような使い方もあります。
+\begin{inputex}
+\def\@sore#1{[#1],\space}
+\def\sore{\@ifnextchar \bgroup {\@sore}{\@sore{default}}}
+\makeatother
+\sore{hoge}
+\sore
+\end{inputex}
+
+
+
+%\section{簡単な再帰の例}
+
+\begin{inputex}
+\documentclass{article}
+\begin{document}
+\makeatletter
+\newcount\dot@point
+\dot@point=\@ne
+\def\@dot@points[#1]{% 描画する点の大きさ
+   \dot@point=#1\relax
+   \dot@points
+}
+\def\dot@points(#1,#2){% 再帰的に点を描画するための命令
+   \put(#1,#2){\circle*{\dot@point}}%
+   \@ifnextchar({\dot@points}{}%)
+}
+\def\dottedpoints{% 点の大きさが指定されているかどうかの判定
+   \@ifnextchar[{\@dot@points}{\dot@points}%]
+}
+\makeatother
+\begin{picture}(100,100)(0,0)
+\setlength\unitlength{1pt}
+\dottedpoints(0,0)(10,10)(20,50)(20,100)
+\dottedpoints[10](100,100)(50,0)(50,50)(30,30)(20,20)
+\end{picture}
+\end{document}
+\end{inputex}
+
+問題、星を付けたときだけに中黒にするにはどうすれば良いでしょう?
+ヒントは \C{@ifstar} とか
+
+
+
+\begin{Syntax}
+\C{@ifundefined}\pa{コマンド名}\pa{真の場合}\pa{偽の場合}  \\
+\C{@ifdefinable}\pa{制御綴}\pa{真の場合} 
+\end{Syntax}
+
+
+\begin{Exe}
+次の実行結果から \C{undefined} や \C{empty}，\C{@empty} などの
+意味をもう少し理解してください．
+\makeatletter
+\def\check@hoge{\ifx\hoge\undefined 未定義\else 定義済み\fi}
+\def\check@relax{\ifx\hoge\relax 楽\else 苦\fi}
+\def\check@empty{\ifx\hoge\empty 空\else 何か\fi}
+\check@hoge \check@empty \check@relax \texttt{\meaning\hoge}\par
+\def\hoge{hoge}%定義
+\check@hoge \check@empty \check@relax \texttt{\meaning\hoge}\par
+\let\hoge\@empty%代入
+\check@hoge \check@empty \check@relax \texttt{\meaning\hoge}\par
+\makeatother
+このことから \LaTeX の \C{@ifundefined} は何をしていると
+考えられるでしょうか．
+\begin{inputex}
+\expandafter\ifx\csname#1\endcsname\relax
+  \expandafter\@firstoftwo
+\else
+\expandafter \@secondoftwo\fi 
+\end{inputex}
+\end{Exe}
+
+
+%\subsection{ある命令が定義済みかどうかの判定}
+色々方法があるのですが、まずはすでに \LaTeX で定義されている命令を見てみ
+ましょう。
+\begin{inputex}
+\def\@ifundefined#1{\expandafter\ifx\csname #1\endcsname\relax
+  \expandafter\@firstoftwo\else\expandafter\@secondoftwo\fi}
+\long\def\@firstoftwo#1#2{#1}
+\long\def\@secondoftwo#1#2{#2}
+\end{inputex}
+
+まぁ、ちょっとした命令を作ってみますか。
+結果はいかほど。
+\begin{InOut}
+\long\def\CheckDefine#1{%
+  \expandafter\ifx\csname #1\endcsname
+  未定義 \else 定義済み\fi}
+\CheckDefine{hoge} \CheckDefine{document}
+\end{InOut}
+
+ここで \C{ifx} の一つ目の引数は、\C{CheckDefine} で与えられた一つ目の引
+数となります。しかし、二つ目の引数はなぜか \C{relax} になっています。
+\C{relax} は一体どのような定義になっているのでしょうか。これは調べる必要
+がありそうです。
+
+
+\subsubsection{冗長性}
+
+\Cidx{@cons}%
+\Cidx{@car}%
+\Cidx{@cdr}%
+\Cidx{@carcube}%
+\begin{inputex}
+\def\@cons#1#2{\begongroup\let\@elt\relax\xdef#1{#1\@elt #2}\endgroup}
+\def\@car#1#2\@nil{#1}% 先頭だけ取り出す
+\def\@cdr#1#2\@nil{#2}% 先頭だけ取り除く
+\def\@carcube#1#2#3#4\@nil{#1#2#3}% 
+\end{inputex}
+
+
+  \subsection{頑丈なコマンドの定義}
+ある時点で展開すると不都合が起きる \pp{外部ファイルに書き出す事が
+想定される}場合には \C{protect} などによりコマンドを保護します。
+あらかじめ \C{protect} を付加して定義するには \C{DeclareRobustCommand} 
+を使います。
+\begin{Syntax}
+\C{DeclareRobustCommand}\pa{制御綴}\opa{数値}\opa{標準値}\pa{定義内容} 
+\end{Syntax}
+
+
+\begin{Exe}
+次のようにして \C{LaTeX} がどのように定義されているのかを調べてください．
+\begin{inputex}
+\def\check@meaning#1{\bgroup\ttfamily
+  \expandafter\meaning\csname#1\endcsname\relax\egroup\par}
+\check@meaning{LaTeX}
+\end{inputex}
+結果は次のようになります。
+\begin{inputex}
+\protect \LaTeX
+\end{inputex}
+続いて、\C{protect} を無理矢理書き換えることで \C{LaTeX} の定義を
+調べてみてください。
+\begin{inputex}
+{\let\protect \show \LaTeX} 
+\end{inputex}
+定義時には \C{DeclareRobustCommand} が使われていることを理解してください．
+結果から \C{DeclareRobustCommand} は何をしていると考えられますか．次のよ
+うに入力してその答えを確認してください．
+\begin{inputex}
+\check@meaning{DeclareRobustCommand}
+\check@meaning{declare@robustcommand}
+\end{inputex} 
+さらに \C{@star@or@long} は何をするマクロかを考えてください．
+
+\Cidx{@ifstar}%
+\Cidx{l@ngrel@x}%
+\Cidx{long}%
+\Cidx{newcommand}%
+\C{@star@or@long} は次のように定義されています。
+\begin{inputex}
+\def\@star@or@long#1{%
+  \@ifstar{\let\l@ngrel@x\relax#1}{\let\l@ngrel@x\long#1}%
+} 
+\let\l@ngrel@x\relax
+\end{inputex}
+\C{newcommand} は次のように定義されています。
+\begin{inputex}
+\def\newcommand{\@star@or@long\new@command}
+\end{inputex}
+このことから星付きの場合は \C{long} を付けずに定義する
+ということになります。
+\end{Exe}
+
+
+
+
+
+\begin{Exe}
+\Cidx{check@meaning}%
+\LaTeX ではカウンタを確保するのに \C{newcounter} を使うことも
+できます。\C{newcounter} によって確保したカウンタ \kount{hoge}
+\C{arabic} と \C{@arabic} の違いを理解してください． 
+\begin{inputex}
+\def\check@meaning#1{\bgroup\ttfamily
+  \expandafter\meaning\csname#1\endcsname\relax\egroup\par}
+\check@meaning{arabic}
+\check@meaning{@arabic} 
+\end{inputex}
+上記の結果から \C{arabic} と \C{@arabic} の定義が
+\begin{inputex}
+\def\arabic#1{\expandafter\@arabic\csname c@#1\endcsname}
+\def\@arabic#1{\number#1}
+\end{inputex}
+であると分かります．そうすると \verb|\arabic{page}| は
+できても \verb|{\arabic{\c@page}| はできなし，\verb|\@arabic\c@page| は
+できても \verb|\@arabic{page}| はできないことが分かります．
+\end{Exe}
+
+\begin{Exe}
+次の例から \C{@fnsymbol} では最大いくつまで表示できますか．
+\begin{inputex}
+\check@meaning{fnsymbol}
+\check@meaning{@fnsymbol} 
+\end{inputex} 
+\end{Exe}
+
+\begin{Exe}
+次の結果から \C{@alph} はどのような限界があると考えられますか．
+\begin{inputex}
+\@tempcnta= 3 \@alph\@tempcnta\space
+\@tempcnta=13 \@alph\@tempcnta\space
+\@tempcnta=25 \@alph\@tempcnta\space
+\@tempcnta=26 \@alph\@tempcnta\space
+\@tempcnta=27 \@alph\@tempcnta\space 
+\end{inputex} 
+\end{Exe}
+
+\begin{Exe}
+次の出力結果から \C{@roman} はどのようなキャパシティを持っていると考えら
+れますか．
+\begin{inputex}
+\@tempcnta= 3 \@roman\@tempcnta\space
+\@tempcnta=13 \@roman\@tempcnta\space
+\@tempcnta=23 \@roman\@tempcnta\space
+\@tempcnta=50 \@roman\@tempcnta\space
+\@tempcnta=103 \@roman\@tempcnta\space
+\@tempcnta=255 \@roman\@tempcnta\space
+\end{inputex} 
+\end{Exe}
+
+\begin{Exe}
+\C{@roman} の例を参考に \C{@alph} を次のような動作が
+するように拡張してください． 
+\begin{quote}
+a, b, c, \ldots, z, aa, ab, ac, \ldots, az, ba, bb, bc, \ldots 
+\end{quote}
+\end{Exe}
+
+
+\begin{Exe}
+\C{pagenumbering} と等価な \C{pagenokazu} を作成してみてください．
+\verb|\@roman\c@page| とすれば良いのでおおむね \C{c@page} を1に
+初期化し，恐らく \C{thepage} を \verb|\csname @#1\endcsname\c@page|
+と定義すれば良いことになります． 
+\begin{inputex}
+\def\pagenokazu#1{%
+  \c@page=\@ne
+  \def\thepage{\csname @#1\endcsname\c@page}} 
+\end{inputex}
+しかし \Fl{ltpageno.dtx} では \C{global} が使われています．
+その理由を考えてください．
+\begin{inputex}
+\def\pagenonumbering#1{%
+  \global\c@page\@ne
+  \gdef\thepage{\csname @#1\endcsname\c@page}} 
+\end{inputex}
+\end{Exe}
+
+
+
+\section{\texttt{array}/\texttt{tabular} 環境実装への道 其の一}
+まずは \C{hbox} と \C{vbox} に関する説明から、 \C{hbox} は中身を水平に組
+む、途中改行はなし。\C{vbox} は中身を垂直に組む。まずは以下の出力例を吟
+味した方が良いでしょう。
+\begin{inputex}
+% これは割とうまく組れる
+\fbox{\vbox{\hbox{a}\hbox{b}\hbox{c}}}\par
+% \vbox は組むべき幅が \linewidth だと誤解する
+\fbox{\hbox{\vbox{a}\vbox{b}\vbox{c}}}\par
+% これも割とうまく組まれる
+\fbox{\hbox{\hbox{a}\hbox{b}\hbox{c}}}\par
+% \vbox は \vbox のなかでは 幅が分からず
+\fbox{\vbox{\vbox{a}\vbox{b}\vbox{c}}}\par
+\end{inputex}
+実質的に 長さを特別に指定しない場合はこのような恐いことになるので
+\C{vbox} のなかでは \C{hbox}, \C{hbox} のなかでは \C{vbox} ということに
+なります。\TeX 上では \C{fbox} とか \C{framebox} などは定義されていない
+ので \LaTeX 側で \C{hrule}/C{vrule} を使って
+\begin{inputex}
+\def\waku#1{\ifvmode\leavevmode\fi
+  \hbox{\vrule\vbox{\hrule\hbox{hoge}\hrule}\vrule}}
+\end{inputex}
+などとしています (実際はもうちょっと手を加える)。さきに \C{vrule} で
+囲む方法ももちろんあります。
+\begin{inputex}
+\def\vwaku#1{\ifvmode\leavevmode\fi
+   \vbox{\hrule\hbox{\vrule\hbox{#1}\vrule}\hrule}%
+}
+\end{inputex}
+
+次に 3 行 3 列の単純な表を作ることを考えます。先ほどの
+\C{hbox} と \C{vbox} を使って簡単な例題を見たので、ある程度は分かるで
+しょう。
+
+
+\section{環境型コマンドの提供}
+次のファイル \Va{hoge}{tex} を \Prog{ptex} (\Prog{tex}, \Prog{pdftex} で
+も) でタイプセットしてみて下さい。
+\begin{inputex}
+\let\TeXorigEnd\end
+\def\begin#1{\csname #1\endcsname}
+\def\end#1{\csname end#1\endcsname}
+%
+\long\def\newenvironment#1#2#3{%
+  \expandafter\def\csname #1\endcsname{#2}%
+  \expandafter\def\csname end#1\endcsname{#3}%
+}
+%
+\newenvironment{document}{\relax}{\TeXorigEnd}
+\newenvironment{math}{$}{$}
+\newenvironment{displaymath}{$$}{$$}
+\def\({$}%$
+\def\){$}%$
+\def\[{$$}%$$
+\def\]{$$}%$$
+%
+\begin{document}
+Hello, World!!
+\begin{math}
+ f(x) = ax + b
+\end{math}
+Hello, World!!
+\begin{displaymath}
+ E = mc^2.
+\end{displaymath}
+hoge $a^2$, hoge.
+\[
+ f'(u)= f(u)(1-f(u))
+\]
+\end{document}
+\end{inputex}
+何をやっているのか、吟味して下さい。
+
+\begin{Exe}
+\C{begin} と \C{end} は何をする命令でしょうか．
+\begin{inputex}
+\check@meaning{begin}
+\check@meaning{end} 
+\end{inputex} 
+\end{Exe}
+
+%\paragraph{宣言型命令は環境にできる}
+それ以降、何らかの属性を変更する\Z{宣言型命令}は
+環境にすることができます。
+\begin{InOut}
+\begin{ttfamily}
+ここはTypewriter体になるんでしょうか?`
+\end{ttfamily}	
+\end{InOut}
+
+
+\section{外部ファイルの書き出し/読み出しをする}
+\C{section} や \C{caption} の引数は必ず展開されるようになっています。
+これは次の場合を想定しています。
+\begin{inputex}
+\documentclass{jarticle}
+\begin{document}
+\tableofcontents% この時点では \hoge の定義内容を知らない
+\def\hoge{foo}% ここで \hoge が定義されている
+\section{\hoge}% 見出しを出力すると同時に \jobname.aux に
+% \@writefile{toc}{\contentsline {section}{\numberline {1}foo}{1}}
+% を書き出す。 \jobname.toc には
+% \contentsline {section}{\numberline {1}foo}{1}
+% が文書の組版が終わった段階 (2 度目の \jobname.aux の読み込み時点)
+% で書き出される。
+\end{document}
+\end{inputex}
+この場合、\C{tableofcontents} は \C{jobname}\suf{toc} の中身を参照します。
+これは \C{section} 命令によって書き出されたものです。もしも、\cmd{hoge} を
+展開しなかったばあいは \cmd{hoge} の定義の前に 目次を出力する羽目になります。
+\C{section}/\C{caption} などの引数の中身を展開することにより、後方参照マクロの
+未定義エラーを回避しているとも考えられます。
+
+しかし、しばしばこの展開が悪さをする場合があります。
+\begin{inputex}
+\section{見出し $f(x)=ax+b$}
+\section{見出し \(f(x)=ax+b\)}
+\end{inputex}
+とした場合には \verb|$$| は \TeX のプリミティブなので頑丈  (robust) です。
+しかし、 \verb|\(|, \verb|\)| は \LaTeX のマクロなので \C{section} などの 動く
+(moved) 引数の中では 脆弱 (fragile) です。
+
+
+\section{長さから `pt' を取り除く}
+\begin{inputex}
+\@tempdima = 100.5pt 
+\end{inputex}
+として \C{@tempdima} を設定したとしたならば
+\begin{inputex}
+\the\@tempdima 
+\end{inputex}
+で
+\begin{OutText}
+100.5pt
+\end{OutText}
+というトークンが得られるが、この \str{100.5pt} から単位の `pt' を取り除
+きたいときがしばしばある。単純に \C{@tfor} で
+\begin{inputex}
+\makeatletter
+\def\hoge{\the\linewidth}
+\@tfor\temp@str:=\hoge\do{%
+   \if\temp@str p\relax
+   \else
+      \if\temp@str t\relax
+      \else
+         \temp@str
+      \fi
+   \fi
+}
+\makeatother
+\end{inputex}
+とできるというわけではない。ここで一つ厄介なのは `pt' のカテゴリーコード
+でである。と、安易にここでカテゴリーコードを変更してもいけない。
+
+\begin{inputex}
+(執筆中)
+\end{inputex}

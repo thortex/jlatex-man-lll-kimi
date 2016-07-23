@@ -1,0 +1,165 @@
+\chapter{クラス解体}
+
+
+\section{クラスファイルの設計}
+
+\subsection{最小構成}
+いきなり大規模なクラスファイルを設計仕様と思っても無理なので、
+まずは最小構成のクラスファイルを作ります。そこで次のクラスファイル
+\fl{hoge.cls}を作成します。
+\begin{inputex}
+\ProvidesClass{hoge}[2004/08/09 LaTeX2e class file]
+\renewcommand\normalsize{\fontsize{10pt}{12pt}\selectfont}
+\endinput
+\end{inputex}
+実は \C{ProvidesClass} と \C{renewcommand} の2行があればうまく動きます。
+多分そのうち日本語 \TeX にも依存したクラスになるだろうと思いますか
+ら \C{NeedsTeXFormat} を宣言しておきます。
+\begin{inputex}
+\NeedsTeXFormat{pLaTeX2e}
+\end{inputex}
+これであなたもクラス設計者になれました。
+
+しかし、これだけではあまりにもさびしいので、今まで体裁を
+調整する命令を活用します。何か目標があったほうが良いので、
+今回は用紙がA4で縦位置、フォントサイズが10ポイント、
+1行44文字、1ページ36行のレポート用のクラスファイルにします。
+ページ番号はページ下部中央にアラビア数字で出力します．
+すると先ほどのクラスファイルは次のようになります。
+\begin{inputex}
+\NeedsTeXFormat{pLaTeX2e}
+\ProvidesClass{hoge}[2004/08/09 LaTeX2e class file]
+\renewcommand\normalsize{\fontsize{10pt}{18pt}\selectfont}
+\normalsize
+\setlength\textwidth{44zw}
+\setlength\textheight{36\baselineskip}
+\parindent=1zw
+\pagenumbering{arabic}
+\pagestyle{plain}
+\end{inputex}
+まぁ、何ができるか試してくださいな。フォントサイズを変更する
+コマンドや見出しの命令なども使えないことでしょう。
+ただ、通常のクラスファイルとちがって、このままでは\\
+\dos{Underfull \C{vbox} (badness 10000) has occurred while \C{output} is active [1]}
+\\
+みたいなエラーが出ることになります。
+
+\subsection{版面を構成する最低限のパラメータ}
+さて、前回は次のようにしてクラスファイルを作成しました。
+\begin{inputex}
+\NeedsTeXFormat{pLaTeX2e}
+\ProvidesClass{hoge}[2004/08/08 pLaTeX2e class file]
+\renewcommand\normalsize{\fontsize{10pt}{18pt}\selectfont}
+\normalsize
+\setlength{\textwidth}{40zw}
+\setlength{\textheight}{36\baselineskip}
+\end{inputex}
+この段階で\\
+\dos{Underfull \C{vbox} (badness 10000) has occurred ....}\\
+なるエラーになります。まぁ、原因は版面を構成するパラメータを
+認識できていないことになります。
+とりあえず、エラーを回避するだけならば \C{textheight} を
+次のように
+\[
+ \mbox{\C{textheight}}= n\mbox{\C{baselineskip}}+ \mbox{\C{topskip}}
+\]
+とするとうまく行きます。$n$ は適当に1ページ何行にするかを決めます。
+\C{baselineskip} は行送りのスキップです。
+\C{topskip} はページ上部に挿入するスキップです。
+とりあえず、この二つを \C{textheight} に代入すると
+なんとかなるでしょう。
+
+よってエラーを回避するためのクラスファイルは次のように
+記述します。
+\begin{inputex}
+\NeedsTeXFormat{pLaTeX2e}
+\ProvidesClass{hoge}[2004/08/11 pLaTeX2e class file]
+\renewcommand\normalsize{\fontsize{10pt}{18pt}\selectfont}
+\normalsize
+\setlength{\textwidth}{40zw}
+\setlength{\textheight}{35\baselineskip}
+\setlength{\topskip}{1\baselineskip}
+\addtolength{\textheight}{\topskip}
+\end{inputex}
+このようにすると1ページ辺り36行文の行送りが取られることになります。
+
+版面を構成するパラメータは次のようになります\ldots
+
+\subsection{普通の文字の大きさの定義}
+\LaTeX のクラスファイルのなかで、文字の大きさを変更する
+ための命令を作ります。
+基本として用意すべきなのは \C{magstep} の整数倍の大きさに
+変更するような命令です\footnote{ただし、当該フォントのファミリーが
+どのように宣言されているかで対応も変わります。}。
+
+%hoge hoge 執筆中
+
+
+\section{\textsf{jsarticle}}
+マクロ・クラス作成に関わる命令の数は膨大で，それらを一つずつ
+解説していては読者の皆さんも疲れるだろうから，ここは実際に
+\ppl{奥村晴彦}の\D{jsarticle}を解剖してガリッと理解
+しましょう．
+
+\Cidx{NeedsTeXFormat}%
+\Cidx{ProvidesClass}%
+順に見ていきましょう．最初は\C{NeedsTeXFormat}と
+\C{PrividesClass}命令です．
+\begin{inputex}
+\NeedsTeXFormat{pLaTeX2e}
+\ProvidesClass{jsarticle}[2004/02/25 okumura]
+\end{inputex}
+ここでは必要とされる{\TeX}の種類\pp{\pLaTeXe}と
+提供するクラスファイルの名前\pp{\cls{jsarticle}}を
+指定します．
+\begin{inputex}
+\newif\if@restonecol
+\newif\if@titlepage
+\newif\if@enablejfam \@enablejfamtrue
+\end{inputex}
+\C{newif}命令は新規にブール型の変数を定義します．
+クラスファイル\pp{\Va{file}{cls}}やマクロ\pp{\Va{file}{sty}}の中
+ではアット\qu{\str@}は通常の英字と同じように扱われますから，
+\C{makeatletter}や\C{makeatother}といった命令は
+使われていません．
+\begin{Syntax}
+\C{newif}\C{if}\va{ブール変数}
+\end{Syntax}
+
+次は\emph{\Z{クラスオプション}}の宣言をします．
+\begin{inputex}
+\DeclareOption{a4paper}{%
+  \setlength\paperheight {297mm}%
+  \setlength\paperwidth  {210mm}}
+\DeclareOption{a5paper}{%
+  \setlength\paperheight {210mm}%
+  \setlength\paperwidth  {148mm}}
+\end{inputex}
+\C{DeclareOption}命令でそのクラスファイルが提供する
+オプションを宣言できます．
+\begin{Syntax}
+\C{DeclareOption}\pa{オプション}\pa{内容}
+\end{Syntax}
+\pa{オプション}を宣言するときの\pa{内容}は何かの定義でも
+構いませんし，パラメータの設定でも構いません．
+
+\Z{フォントサイズ}の設定をします．
+\begin{inputex}
+\DeclareOption{9pt}{\renewcommand{\@ptsize}{-1}}
+\DeclareOption{10pt}{\renewcommand{\@ptsize}{0}}
+\DeclareOption{11pt}{\renewcommand{\@ptsize}{1}}
+\DeclareOption{12pt}{\renewcommand{\@ptsize}{2}}  
+\end{inputex}
+\cmd{@ptsize}というフォントサイズの基準を決める
+命令を再定義しています．
+
+用紙の縦と横の長さを入れ替えるための処理をしています．
+\begin{inputex}
+ \DeclareOption{landscape}{%
+  \setlength\@tempdima   {\paperheight}%
+  \setlength\paperheight {\paperwidth}%
+  \setlength\paperwidth  {\@tempdima}}
+\end{inputex}
+
+
+

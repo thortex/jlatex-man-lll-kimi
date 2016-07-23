@@ -1,0 +1,2281 @@
+\chapter{マクロ作成の基礎知識}
+\begin{abstract}
+ここでは \LaTeX でのマクロ・クラスの解読の前に理解すべきことを紹介します．
+\LaTeX は \TeX を基盤としたマクロの集まりですから，まずは \TeX の基礎を
+習得すべきでしょう．この章では \TeX の概念的な知識を学んでみようと思い
+ます．ランニングと筋力トレーニングのような基礎訓練になりますが，最後まで
+読んでみてください．
+\end{abstract}
+
+\section{ゲームのルール}% The Rule of The Game
+
+\subsection{\LaTeX の基盤}% The Base of LaTeX
+\LaTeX はどのように構築されているのでしょうか．それらは全て
+\Fl{source2e.tex}に書かれていますが，これを理解するには何かが
+足りません．その足りない知識とは \TeX についてです．\LaTeX は
+\TeX を基盤としていますから \TeX に関する知識，いわゆる
+\emph{\Z{プリミティブ}}と呼ばれる命令について理解する必要が
+あります．プリミティブとは \TeX のプログラム自体に直接組み込ま
+れているコマンドのことで，数百個あります．これら全てを理解する
+必要はありませんが，\LaTeX のマクロを理解する上で必要なものが
+沢山あります．%この章では{\LaTeX}の基盤である{\TeX}のプリミティ
+%ブとそれに関わる機構について少し紹介しようと思います．
+\LaTeX は \TeX を基盤としてそのシステムが構築されています
+\pp{\figref{fig:baseoflatex}}。
+%
+\begin{figure}[htbp]
+\begin{center}
+\fbox{原稿\pp{ソース}}\par\vskip1ex
+\framebox[10zw]{マクロ・クラス}\par\vskip1ex
+\framebox[15zw]{\LaTeX\pp{{\TeX}マクロ}}\par\vskip1ex
+\framebox[20zw]{{\TeX}\pp{プリミティブ・プログラム}}
+\caption{{\TeX}と{\LaTeX}の関係}\label{fig:baseoflatex}
+\end{center} 
+\end{figure}
+
+
+\subsection{\TeX の文法}% Syntax of TeX
+\TeX は組版を行なうプログラムです。それに関わる基本的な機能を
+\emph{\Z{ボックス・グルーモデル}}と呼ばれるような形態で提供
+しています。文章構成要素・数式要素・図表など、ありとあらゆるものを
+「\Z{高さ} (\Z{height})」「\Z{幅} (\Z{width})」「\Z{深さ} (\Z{depth})」
+「\Z{基準点} (\Z{reference point})」の四つを持った\Z{ボックス}として扱い、
+そのボックスを特定のページの適切な場所に配置するために\Z{グルー}と呼ばれ
+るバネのようなもので張り付けて行きます\footnote{もちろん、\TeX が最終的に
+ある文字 $X$ をページに配置するにはその文字 $X$ が持っている\Z{フォント
+メトリクス}など、必要となる各種情報が参照されます。}。
+
+\TeX はボックス・グルーモデルに則ってページを組版しますが、\TeX にどのよ
+うにページを組めば良いかを指定するために\emph{\Z{コマンド}}と呼ばれる文
+字の綴を文章と併せて記述することになります。
+
+\TeX が提供するコマンドは分かる人には分かるのですが、まるで\Z{アセンブリ言
+語}でも扱っているかのような使いにくさがあります。\Z{複合条件判断}のやり
+にくさ、\Z{演算子}の記述制限、\Z{アロケーション}に関する制約、
+\Z{カテゴリーコード}等に見られるような\Z{内部コード}の導入など、プログラ
+ミングをかじったことのある人でもちょっと戸惑うような概念が沢山あります。
+
+このような使いにくさ\footnote{使いにくいかどうかを判断するのは個々のユー
+ザなので、ここでは一般的な高級言語に見られるような機能が実装されているか
+どうかという事で判定してもらいたい。それでも愛昧だと思いますけど。}にも
+理由があります。言語仕様をアセンブリに近づける事により、\TeX は並列性を
+高めることができ、他のプログラムに比べて非常に高速に実行できるようになる
+からです。\ppl{Donald~E. Knuth}は \TeX の高速性を優先したようです%
+\footnote{\TeX のソースを見れば分かりますが、並列性に関する種々の工夫が
+随所に見受けられます。さすが Knuth です。}。
+
+そのため、プログラミングもやったことがなく、数学もちょっと苦手な方には
+\TeX は扱い辛い言語になっているかもしれません。
+
+\subsection{\LaTeX の文法}% Syntax of LaTeX
+
+\TeX は組版をするための\emph{最高}の機能を提供してくれますが、インタフェー
+スは最高ではないようです。文書を執筆する上で人間が理解しやすい方が良いの
+は当然のことなので、\ppl{Leslie Lamport}が \TeX に\Z{SGML}の概念を導入し
+\LaTeX を開発しました。この \LaTeX の特徴的な事としては\Z{宣言型}のコマ
+ンドで文章の構成要素を\Z{マークアップ}\pp{意味付け}していくという方法に
+なっていることでしょう。
+例えばある画像 \Va{filename}{eps} を中央揃えで文書に配置したければ
+次のように \E{document} 環境の中に \E{center} を記述し、その \E{center}
+環境の中に \C{includegraphics} 命令を入れ子にします。
+\begin{inputex}
+\begin{document}
+ \begin{center}
+  \includegraphics[width=10cm,height=5cm]{filename.eps}
+ \end{center}
+\end{document} 
+\end{inputex}
+
+現在は\ppl{Leslie Lamport}がほぼ一人で開発した \LaTeX\ \pp{この当時の
+\LaTeX を\LaTeX\,2.09と呼よびます}から、現在は \LaTeX\,3 プロジェクト
+チームが開発をしている \LaTeXe が広く使われています。将来的には
+\LaTeX\,3 というバージョンが世に登場することになり、この冊子のタイトル
+『好き好き\LaTeXe 』というのも時代遅れになるかも知れませんが、基礎的な
+事は変わらないと思いますので、この冊子では \LaTeXe を前提として解説を
+していく事にします。
+
+
+ \section{定義と代入}
+
+\LaTeX 的な定義には \C{newcommand} や \C{newenvironment} などがありまし
+た。しかし、これらも実は\emph{マクロとして定義された}ものに過ぎません。
+本来マクロの定義には \TeX のプリミティブ \C{def}\pp{他にも \C{edef},
+\C{gdef},\C{xdef}も含みます}を使うことになります。
+
+  \subsection{定義}
+あるマクロを定義するには \C{def} を使います。これはすでに定義済みのマク
+ロでも定義済みかどうかの判定をせずに、再定義してしまうものです。
+状況に応じて \C{def} ではなく \C{edef} を使います。
+
+\begin{Syntax}
+\C{global}\va{\C{long}\OR\C{outer}}\va{\C{def}\OR\C{edef}}%
+  \va{制御綴}\va{引数と書式}\pa{定義}
+\end{Syntax}
+とりあえず、\C{global} は大域的にマクロを定義したいときに付けるもので、
+なくても構いません。 \C{long} はそのマクロが改段落\pp{\C{par}}を含むよう
+な長い場合に使います。\C{outer} はそのマクロが他のマクロの引数の
+中にあってはならないことを指定します。\C{long} と \C{outer} は共に
+なくても構いません。
+\pa{定義}には引数や他のマクロを含むテキストを記述することが出来ます。
+
+\begin{Exe}
+引数を表すには井桁と一桁の数字 `\#\va{n}' を使い、1--9 が使用できます。
+次のファイルをタイプセットしてそれを確認してください。
+\begin{inputex}
+\def\hoge{hoge} \hoge\par
+\def\hoge#1{[#1]} \hoge{びっくり}\par
+\def\hoge#1#2{(#1,#2)} \hoge{x}{y}\par
+\def\hoge#1#2#3#4#5#6#7#8#9{#1; #2; #3; #4; #5; #6; #7; #8; #9; \gege}
+\def\gege#1#2{#1, #2.} \hoge{A}{B}{C}{D}{E}{F}{G}{H}{I}{J}{K}\par
+\def\hoge#1{`#1'} \hoge abcde\par
+\end{inputex}
+結果は ``hoge, [びっくり], (x,y), A; B; C; D; E; F; G; H; I; J, K. 
+`a'bcde''などとなります。四つ目の \cmd{hoge} では引数を 11 個受け取るため
+に別の命令 \cmd{gege} を呼び出すようにしています。
+\end{Exe}
+
+
+\begin{Exe}
+\C{def} に慣れるために次のような記述をタイプセットしてください。また実行
+結果を吟味してください。
+\begin{inputex}
+\def\nyo#1{\item[で○こ] 「#1にょ」}
+\def\nyu#1{\item[ぷ○こ] 「#1にゅ」}
+\def\piyo#1{\item[ぴ○こ]「#1ぴよ」}
+\def\gema#1{\item[げ　○]「#1げま」}
+\begin{description}
+\nyo{あぁ、ひまだ}
+\nyu{そうか}
+\nyo{なんか、面白いことはおこらないか}
+\nyu{昨日は暴れん坊が来た}
+\nyo{そうだった}
+\gema{もう、こりごり}
+\nyu{だれかきた}
+\gema{だれ}
+\piyo{ぴよー、ぴよー}
+\nyo{いきなり、だれだ}
+\nyu{だれ}
+\gema{だれ}
+\piyo{ぴよぴよぴよ。悪、参上です}
+\end{description}
+\end{inputex}
+\end{Exe}
+
+
+
+\begin{Exe}
+\C{edef} は \va{定義における引数とマクロを展開してから} \va{制御綴}を
+定義します。次の記述をタイプセットして、出力結果を吟味してください。
+\begin{inputex}
+\def\A{AAA} \def\B{BBB}
+\edef\hoge{\A~and \B}
+\def\geho{\A~and \B}
+\hoge, \geho\par
+\def\A{CCC} \def\B{DDD}
+\hoge, \geho 
+\end{inputex}
+\cmd{A} と \cmd{B} が再定義された後の \C{hoge} と \C{geho} では \C{hoge} は
+前の内容が置換されています。
+\end{Exe}
+
+\begin{Exe}
+\C{def}  では自分自身を参照するようなマクロは定義することが出来ません。
+\begin{inputex}
+\def\A{ほげ}
+\def\A{ほげ\A}
+\A\par
+\end{inputex}
+上記ソースを実行すると\\
+\dos{! TeX capacity exceeded, sorry [main memory size=1000001].}\\
+なるエラーとなります。こうならないためには \C{edef} を使います。
+\begin{inputex}
+\def\A{ほげ}
+\edef\A{ほげ\A}
+\A\par 
+\end{inputex}
+\end{Exe}
+
+\begin{Exe}
+改段落\pp{\C{par} などにより複数の段落}を含むようなマクロを定義するに
+は \C{def}/\C{edef} に \C{long} を補います。
+\begin{InOut}
+\long\def\A{ほげ\par ほげ}
+\long\def\B{\par\vskip 1em\hrule\vskip1ex}
+\B \A \B \A
+\end{InOut}
+\end{Exe}
+
+
+\subsection{書式付き引数}
+\begin{Exe}
+引数を受け取るときに「書式」を 指定して受け取る事が出来ます。これは
+\Z{パターンマッチ}などと呼ばれる事もあります。次の記述をタイプセットして
+実行結果を吟味してください。
+\begin{inputex}
+\def\hoge#1/#2/#3#4{#1年#2月#3#4日} 
+\hoge 2005/03/09 \par
+\def\hoge#1{\gege#1owari}
+\def\gege#1/#2/#3owari{#1年#2月#3日}
+\hoge {2005/3/9}
+\end{inputex}
+日付を表すのに月日の桁が一桁だった場合は最後の引数がありませんので、
+別の方法を用いています。
+\end{Exe}
+
+馴染みやすい例として\Z{日付} (\Prog{date}) があります。Vine Linux 3.x の
+日本語化された date コマンドでは \type{date} とすれば次のように表示されます。
+\begin{OutTerm}
+2005年 2月 15日 火曜日 16:52:03 JST
+\end{OutTerm}
+この出力を逆に英語のフォーマットに戻すマクロを考えます。
+\begin{quote}
+\va{yyyy} 年 \va{mm} 年 \va{dd} 日 \va{D}曜日 \va{hh}:\va{mm}:\va{ss} JST
+\end{quote}
+これは常に決まった書式になっていますので \fl{hoge.tex} に日付を書き出します。
+\begin{InTerm}
+\type{echo "\hiduke `date`" >hoge.tex}
+\end{InTerm}
+このようにして \fl{file.tex} において次のようにすれば、実行結果は
+`16:52:03~2005/ 2/ 15'となります。
+\begin{inputex}
+\documentclass{jarticle}
+\begin{document}
+\def\hiduke#1年#2月#3日#4曜日#5:#6:#7JST{#5:#6:#7\space#1/#2/#3}
+\input{hoge}
+\end{document}
+\end{inputex}
+
+
+\subsection{定義の中の定義}
+例えば \cmd{hoge} を定義するような記述があるとします。
+\begin{inputex}
+\def\aaa#1#2{#1 は #2 です}
+\end{inputex}
+このマクロの中で新たに \cmd{bbb} という引数を取る命令を作成したいとします。
+\begin{inputex}
+\def\bbb#1{#1 とか}
+\end{inputex}
+この場合、
+\begin{inputex}
+\def\aaa#1#2{#1 は #2 です、\def\bbb#1{#1 とか}}
+\end{inputex}
+としたのでは \cmd{bbb} の引数が \verb|#1| となり、定義中の \verb|#1| 
+は \cmd{aaa} の一つ目の
+引数として解釈されます。これを防止するためには 定義の深さの数だけ \verb|#| を
+増やします。
+\begin{inputex}
+\def\aaa#1#2{#1 は #2 です、\def\bbb##1{##1 とか}}
+\end{inputex}
+例題として日付を定義するようなものを示します。
+\begin{inputex}
+\def\Year#1{%
+   \def\Month##1{%
+      \def\Date####1{#1/##1/####1}%
+   }%
+}
+\Year{2004}
+\Month{11}
+\Date{25}
+\end{inputex}
+井桁 \verb|#| を\Z{エスケープ}させるためには \verb|##| とするということになります
+(\Prog{Make} の \verb|$| みたいなものっす)。
+
+
+
+\subsection{グルーピング}
+
+\begin{Exe}
+あるグループの中で何らかのマクロを\C{def}/\C{edef} で定義すると、その
+グループの中だけでマクロが使えます。ですから、次の三つの \cmd{hoge} は
+すべて \dos{! Undefined control sequence.}ということで、未定義になります。
+\begin{inputex}
+{\def\hoge{ほ} \edef\hoge{\hoge げ}}
+\hoge, {\hoge}, {{\hoge}}\par
+\end{inputex} 
+これをグループの外でも有効にするには \C{global} を補います。
+\begin{inputex}
+{\global\def\hoge{ほ} \global\edef\hoge{\hoge げ}}
+\hoge, {\hoge}, {{\hoge}}\par
+\end{inputex}
+しかし、わざわざ \C{global} を毎回補うのは面倒なので \C{def} において
+は \C{gdef}、\C{edef} においては \C{xdef} という短縮形が用意されています。
+ですから、上記のソースは次のように書いても同じ事になります。
+\begin{inputex}
+{\gdef\hoge{ほ} \xdef\hoge{\hoge げ}}
+\hoge, {\hoge}, {{\hoge}}\par 
+\end{inputex}
+自分のグループの上層に影響力を与えるには \C{global} などのような
+大域化が必要になりますが、自分よりも下層の場合は必要ありませんので、
+次のような記述でなんら問題ありません。
+\begin{inputex}
+\gdef\hoge{ほ} \xdef\hoge{\hoge げ}
+\hoge, {\hoge}, {{\hoge}}\par  
+\end{inputex}
+\end{Exe}
+
+
+複数の引数を受け取るマクロを定義するにもいくつか方法があります。
+\LaTeX 的には \C{newcommand} で次のように定義できます。
+\begin{InOut}
+\usepackage{color}
+\newcommand*\hoge[2]{{%
+  \color{red}#1 is red.}
+  {\color{blue}#2 is blue.}}
+\hoge{赤}{青}
+\end{InOut}
+\TeX 的には \C{def} で次のようにやるのが分かりやすいでしょうか。
+\begin{InOut}
+\def\hoge#1#2{%
+  {\color{red}#1 is red.} 
+  {\color{blue}#2 is blue.}}
+\hoge{赤}{青}
+\end{InOut}
+
+次の例では \cmd{hoge} に直接引数を与えるのではなく \cmd{@hoge} 
+と \cmd{@@hoge} の二つにそれぞれ引数を一つずつ渡すようにしています。
+\begin{InOut}
+\makeatletter
+\def\hoge{\bgroup\color{red} \@hoge}
+\def\@hoge#1{#1 is red. \egroup
+  \bgroup\color{blue}\@@hoge}
+\def\@@hoge#1{#1 is blue.\egroup}	
+\hoge{赤}{青}
+\makeatother
+\end{InOut}
+\C{bgroup}/\C{egroup} はマクロで、とりあえずはグループの開始と
+終わりを意味するものとして認識してください。
+
+マクロ \cmd{hoge} を次のように定義したとします。
+\begin{inputex}
+\def\hoge{{\color{red} \@hoge}
+\def\@hoge#1{#1 is red. }
+  {\color{blue}\@@hoge}
+\def\@@hoge#1{#1 is blue.}}
+\end{inputex}
+このようにすると \C{hoge}, \C{@hoge}, \C{@@hoge} の定義のテキストの
+中でグループの対応が取れずにエラーになります。要するに書き換えると
+こうなるでしょう。
+\begin{inputex}
+\def\hoge{%
+  {\color{red} \@hoge}%
+  \def\@hoge#1{#1 is red. }%
+  {\color{blue}\@@hoge}%
+  \def\@@hoge#1{#1 is blue.}%
+} 
+\end{inputex}
+なんと恐ろしいことでしょうか。このようにならないためにはさき程
+の \C{bgroup}, \C{egroup} を使うようにします。これら以外に
+も \C{beginroup}, \C{endgroup} を用いるできますが、とりあえず
+前者の方だけ覚えておいてください。
+\begin{inputex}
+\def\hoge{\begingroup\color{red} \@hoge}
+\def\@hoge#1{#1 is red. \endgroup
+  \begingroup\color{blue}\@@hoge}
+\def\@@hoge#1{#1 is blue.\endgroup}
+\hoge{赤}{青} 
+\end{inputex}
+
+\C{group}/\C{egroup}, \C{begingroup}/\C{endgroup},
+\ttlb/\ttrb によるグループの中ではスコープが効いている時、グルー
+プの外側にも定義を有効にさせるには \C{gdef}/\C{xdef} を使うことになりま
+す。
+\begin{inputex}
+\bgroup \def\hoge{hoge1} \egroup \hoge
+\begingroup \def\hoge{hoge2} \endgroup \hoge
+{\def\hoge{hoge3} \endgroup \hoge
+% 上記三つはすべて未定義としてエラーになる。下記三つは有効。
+\bgroup \gdef\hoge{hoge1} \egroup \hoge
+\begingroup \gdef\hoge{hoge2} \endgroup \hoge
+{g\def\hoge{hoge3} \endgroup \hoge
+\end{inputex}
+
+
+  \subsection{代入}
+例えば次のように \cmd{A} が定義されていたとします。
+\begin{inputex}
+\def\A{あがが}
+\end{inputex}
+このマクロが将来的に変更されることが分かっており、定義の内容を
+保存しておきたいときは \C{def} ではなく C{let} というプリミティブを
+使います。
+\begin{Syntax}
+\C{global}\C{let}\va{制御綴} $=$ \va{トークン}
+\end{Syntax}
+大域化を行なう \C{global} とイコール `$=$' は省略可能です。
+
+\begin{Exe}
+なんだか、代入と言われても良く分からないので、次の記述を
+タイプセットして、その実行結果を吟味してください。
+\begin{inputex}
+\def\A{あがが}
+\let\origA=\A
+\A, \origA\par
+\def\A{げげ}
+\A, \origA\par
+\end{inputex}
+結果は「あがが, あがが」「げげ, あがが」 となることから、
+\cmd{A} を定義し直しても \cmd{origA} には「あがが」が
+保存されていることになります。
+\end{Exe}
+
+\TeX では定義 \C{def} と 代入 \C{let} は別々の働きをします。
+代入はその場で中身が決まり、あとから中身が変わることは
+ありませんが、定義の場合はそれを再定義することにより中身が
+変更されます。
+\begin{inputex}
+\def\hoge{aaa}
+\let\foo=\hoge
+\def\bar{bbb}
+\foo, \hoge
+\end{inputex}
+という場合の出力は aaa, bbb となります。
+\begin{inputex}
+\def\bar{ccc}
+\def\hoge{aaa\bar}
+\let\foo=\hoge
+\def\hoge{bbb}
+\foo, \hoge% \foo には aaa\bar という定義が代入されている。
+\end{inputex}
+ならば aaaccc, bbb になり 古い \cmd{hoge} の中身が保存されていることにな
+ります。
+
+
+例えば \E{figure} 環境の前後に必ず罫線を引くことにする場合は 
+\C{figure} と \C{endfigure} の定義をいったん保存しておき、
+次のように書き換えてしまうことも出来ます。
+\begin{inputex}
+\let\origFigure=\figure
+\let\origEndFigure=\endfigure
+\def\figure{\par\vskip1ex\hrule\origFigure}
+\def\endfigure{\origEndFigure\hrule\par\vskip1ex}
+ほげほげ。
+\begin{figure}[htbp]
+\centering\fbox{ここに画像が入るんだろう} 
+\caption{サンプル}
+\end{figure}
+げほげほ。 
+\end{inputex}
+
+
+
+
+ \section{エンジン始動!}% Lets' Fire!
+
+『好き好き\LaTeXe 初級編』の第 6 章にて、\Z{記号}、\Z{コマンド}、
+\Z{カテゴリーコード}、\Z{グルーピング}、\Z{入れ子}、\Z{スコープ}、\Z{宣
+言}と命令などの基本は解説してあります。ここではそれらがどのように実装さ
+れているのかなどを考えます。
+
+  \subsection{文字コード}
+まずはコンピュータの中で文字や記号がどのように表現されているのかを知らなくては
+なりません。コンピュータの中で文字や記号は単なる数値として表現される事に
+なっています。「ほげ」という文字列があれば\Z{16進数}で`0xA4 0xDB 0xA4 0xB2'
+と表記することも出来ます。このように、コンピュータで文字を表現するために
+使われる数値を\Z{文字コード}と呼び、もっとも標準的なコード\Z{ASCII}など
+があります。ASCIIの文字コード一覧を\tabref{tab:ascii}に示します。
+\begin{table}[htbp]
+\begin{small}
+\makeatletter
+\def\fntsymb#1{{\usefont{OT1}{cmtt}{m}{n}\char#1}}
+\newcommand*\fnttbl[1]{%
+  \fntsymb{'#10} & \fntsymb{'#11} &  \fntsymb{'#12} & \fntsymb{'#13} &%
+  \fntsymb{'#14} & \fntsymb{'#15} &  \fntsymb{'#16} & \fntsymb{'#17} &%
+}
+\makeatother
+ \begin{center}
+  \caption{ASCIIの文字コード一覧}\label{tab:ascii}
+  \begin{tabular}{c|cccccccc|c}
+   \textit{x}
+   & \textit{'0} & \textit{'1} & \textit{'2} & \textit{'3}
+   & \textit{'4} & \textit{'5} & \textit{'6} & \textit{'7}
+   &  \\ \hline
+   \textit{'00x} & \va{NUL} & \va{SOH} & \va{STX} &\va{ETX} &\va{EOT}
+     &\va{ENQ} & \va{ACK} & \va{BEL} & \texttt{"0x} \\ \cline{1-9}
+   \textit{'01x} & \va{BS} &\va{HT} &\va{LF} &\va{VT} &\va{FF} &\va{CR}
+     & \va{SO} &\va{SI} & \texttt{"0y} \\ \hline
+   \textit{'02x} & \va{DLE} &\va{DC1} &\va{DC2} &\va{DC3} &\va{DC4}
+     &\va{NAK} &\va{SYN} &\va{ETB} & \texttt{"1x} \\ \cline{1-9}
+   \textit{'03x} & \va{CAN} &\va{EM} &\va{SUB} &\va{ESC} &\va{FS}
+     &\va{GS} &\va{RS} &\va{US} & \texttt{"1y} \\ \hline
+   \textit{'04x} & \fnttbl{04} \texttt{"2x} \\ \cline{1-9}
+   \textit{'05x} & \fnttbl{05} \texttt{"2y} \\ \hline
+   \textit{'06x} & \fnttbl{06} \texttt{"3x} \\ \cline{1-9}
+   \textit{'07x} & \fnttbl{07} \texttt{"3y} \\ \hline
+   \textit{'10x} & \fnttbl{10} \texttt{"4x} \\ \cline{1-9}
+   \textit{'11x} & \fnttbl{11} \texttt{"4y} \\ \hline
+   \textit{'12x} & \fnttbl{12} \texttt{"5x} \\ \cline{1-9}
+   \textit{'13x} & \fnttbl{13} \texttt{"5y} \\ \hline
+   \textit{'14x} & \fnttbl{14} \texttt{"6x} \\ \cline{1-9}
+   \textit{'15x} & \fnttbl{15} \texttt{"6y} \\ \hline
+   \textit{'16x} & \fnttbl{16} \texttt{"7x} \\ \cline{1-9}
+   \textit{'17x} & 
+      \fntsymb{'170} & \fntsymb{'171} &  \fntsymb{'172} & \fntsymb{'173} &%
+      \fntsymb{'174} & \fntsymb{'175} &  \fntsymb{'176} & \va{DEL} &%
+      \texttt{"7y}\\\hline
+   & \texttt{"8} & \texttt{"9} & \texttt{"A} & \texttt{"B}
+   & \texttt{"C} & \texttt{"D} & \texttt{"E} & \texttt{"F}
+   & \texttt{y}
+  \end{tabular}
+ \end{center}
+\end{small}
+\end{table}
+
+\tabref{tab:ascii}では一文字 7 ビットまでで、\Z{8進数}で言えば \textit{'000} から
+\textit{'177} までの記号が定義されています。\TeX では \textit{'000} から
+\textit{'377} までの記号を割り当てられる 8 ビットのエンコーディングに対
+応した文字コードを許容することが出来ます。\LaTeX2e の標準では OT1 と呼ば
+れる 7 ビットエンコーディングが選択されることになります。
+
+\tabref{tab:ascii}における文字 `\str A' は 8 進数で \textit{'101}、 16
+進数では \texttt{"41} と表すことが出来ます。%"
+
+
+\TeX の原稿で\tabref{tab:ascii}のそれぞれの文字を指定するには
+\tabref{tab:texcode}の通りに記述すれば良いことになります。
+\begin{table}[htbp]
+\begin{small}
+\makeatletter
+\newcommand*\fntsymb[1]{{\usefont{OT1}{cmtt}{m}{n}\char#1}}
+\newcommand*\hh[1]{\texttt{\char'136\char'136 #1}}
+\newcommand*\fnttbl[1]{%
+  \fntsymb{'#10} & \fntsymb{'#11} &  \fntsymb{'#12} & \fntsymb{'#13} &%
+  \fntsymb{'#14} & \fntsymb{'#15} &  \fntsymb{'#16} & \fntsymb{'#17} &%
+}
+\makeatother
+ \begin{center}
+  \caption{文字コードの指定方法}\label{tab:texcode}
+  \begin{tabular}{c|cccccccc|c}
+   \textit{x}
+   & \textit{'0} & \textit{'1} & \textit{'2} & \textit{'3}
+   & \textit{'4} & \textit{'5} & \textit{'6} & \textit{'7}
+   &  \\ \hline
+   \textit{'00x} & \hh{@} & \hh{A} & \hh{B} &\hh{C} &\hh{D}
+     &\hh{E} & \hh{F} & \hh{G} & \texttt{"0x} \\ \cline{1-9}
+   \textit{'01x} & \hh{H} &\hh{I} &\hh{J} &\hh{K} &\hh{L} &\hh{M}
+     & \hh{N} &\hh{O} & \texttt{"0y} \\ \hline
+   \textit{'02x} & \hh{P} &\hh{Q} &\hh{R} &\hh{S} &\hh{T}
+     &\hh{U} &\hh{V} &\hh{W} & \texttt{"1x} \\ \cline{1-9}
+   \textit{'03x} & \hh{X} &\hh{Y} &\hh{Z} &\hh{[} &\hh{\char'134}
+     &\hh{]} &\hh{\char'136} &\hh{\char'137} & \texttt{"1y} \\ \hline
+   \textit{'04x} & \fnttbl{04} \texttt{"2x} \\ \cline{1-9}
+   \textit{'05x} & \fnttbl{05} \texttt{"2y} \\ \hline
+   \textit{'06x} & \fnttbl{06} \texttt{"3x} \\ \cline{1-9}
+   \textit{'07x} & \fnttbl{07} \texttt{"3y} \\ \hline
+   \textit{'10x} & \fnttbl{10} \texttt{"4x} \\ \cline{1-9}
+   \textit{'11x} & \fnttbl{11} \texttt{"4y} \\ \hline
+   \textit{'12x} & \fnttbl{12} \texttt{"5x} \\ \cline{1-9}
+   \textit{'13x} & \fnttbl{13} \texttt{"5y} \\ \hline
+   \textit{'14x} & \fnttbl{14} \texttt{"6x} \\ \cline{1-9}
+   \textit{'15x} & \fnttbl{15} \texttt{"6y} \\ \hline
+   \textit{'16x} & \fnttbl{16} \texttt{"7x} \\ \cline{1-9}
+   \textit{'17x} & 
+      \fntsymb{'170} & \fntsymb{'171} &  \fntsymb{'172} & \fntsymb{'173} &%
+      \fntsymb{'174} & \fntsymb{'175} &  \fntsymb{'176} & \hh{?} &%
+      \texttt{"7y}\\\hline
+   & \texttt{"8} & \texttt{"9} & \texttt{"A} & \texttt{"B}
+   & \texttt{"C} & \texttt{"D} & \texttt{"E} & \texttt{"F}
+   & \texttt{y}
+  \end{tabular}
+ \end{center}
+\end{small}
+\end{table}
+
+実は文字を出力するには \C{char} という命令が使えて、文字コード
+を指定すると該当する記号をそのエンコーディングに応じて出力してくれます。
+\begin{Syntax}
+ \C{char}\va{数値} \\
+ \C{symbol}\pa{数値}
+\end{Syntax}
+\va{数値}は8進数表記でも16進数表記でも10進数でも構いません。
+
+\begin{Exe}
+次の記述をタイプセットすると結果はどうなるでしょうか。
+\begin{inputex}
+A, \char65, \char"41, \char'101, \symbol{65}, \symbol{"41}, \symbol{'101}.
+\end{inputex}
+結果はやはり`A, A, A, A, A, A, A.'となるでしょう。
+\end{Exe}
+
+\begin{Exe}
+次のファイルをタイプセットすると結果はどうなるでしょうか。
+\begin{inputex}
+\documentclass{jarticle}
+\begin{document}
+\edef\temp{o}
+\let\end\enddocument
+\catcode"6F=\active \edef^^/{d\temp uy\temp}%"
+hoge 
+hoge
+hoge
+\end
+\end{inputex} 
+文字 `\str o'のカテゴリコードを \C{active} にして、`douyo'として定義して
+います。しかし \C{edef} の段階で \str o が自分自身の定義を参照するので
+無限ループに陥りますので、予め \cmd{temp} を定義しておきます。
+\end{Exe}
+
+
+実際は \va{DEL} とか \va{CR} などの「記号」は存在しないの
+で \textit{'000--'037, '177} \pp{8ビットエンコーディングの場合は
+\textit{'178--'377}も含みます}には別の記号が割り当てられています。
+この割り当ての規則はそれぞれのエンコーディングで異なっていますが、
+\TeX ではこの割り当ての標準的なものが定められており、もっとも基本的な
+ものとして \Option{OT1} というエンコーディングがあります。
+他にも 8 ビットエンコーディングの場合は \Option{T1}、数式の場合はまた
+別のエンコーディングとなります。例えば \ppl{Donald~E. Knuth}がデザインし
+た \Option{OT1} エンコーディングの \Z{Computer Modern} フォントのローマ
+ン体 \str{cmr10} は\tabref{tab:cmr10}に示す記号が割り当てられている事に
+なります。
+\begin{table}[htbp]
+\begin{small}
+ \makeatletter
+ \newcommand*\fntsymb[1]{{\usefont{OT1}{cmr}{m}{n}\char#1}}
+ \newcommand*\fnttbl[1]{%
+   \fntsymb{'#10} & \fntsymb{'#11} &  \fntsymb{'#12} & \fntsymb{'#13} &%
+   \fntsymb{'#14} & \fntsymb{'#15} &  \fntsymb{'#16} & \fntsymb{'#17} &%
+ }
+ \makeatother
+ \begin{center}
+  \caption{\fl{cmr10}中の記号一覧}\label{tab:cmr10}
+  \begin{tabular}{c|cccccccc|c}
+   \textit{x}
+   & \textit{'0} & \textit{'1} & \textit{'2} & \textit{'3}
+   & \textit{'4} & \textit{'5} & \textit{'6} & \textit{'7}
+   &  \\ \hline
+   \textit{'00x} & \fnttbl{00} \texttt{"0x} \\ \cline{1-9}
+   \textit{'01x} & \fnttbl{01} \texttt{"0y} \\ \hline
+   \textit{'02x} & \fnttbl{02} \texttt{"1x} \\ \cline{1-9}
+   \textit{'03x} & \fnttbl{03} \texttt{"1y} \\ \hline
+   \textit{'04x} & \fnttbl{04} \texttt{"2x} \\ \cline{1-9}
+   \textit{'05x} & \fnttbl{05} \texttt{"2y} \\ \hline
+   \textit{'06x} & \fnttbl{06} \texttt{"3x} \\ \cline{1-9}
+   \textit{'07x} & \fnttbl{07} \texttt{"3y} \\ \hline
+   \textit{'10x} & \fnttbl{10} \texttt{"4x} \\ \cline{1-9}
+   \textit{'11x} & \fnttbl{11} \texttt{"4y} \\ \hline
+   \textit{'12x} & \fnttbl{12} \texttt{"5x} \\ \cline{1-9}
+   \textit{'13x} & \fnttbl{13} \texttt{"5y} \\ \hline
+   \textit{'14x} & \fnttbl{14} \texttt{"6x} \\ \cline{1-9}
+   \textit{'15x} & \fnttbl{15} \texttt{"6y} \\ \hline
+   \textit{'16x} & \fnttbl{16} \texttt{"7x} \\ \cline{1-9}
+   \textit{'17x} & \fnttbl{17} \texttt{"7y}\\\hline
+   & \texttt{"8} & \texttt{"9} & \texttt{"A} & \texttt{"B}
+   & \texttt{"C} & \texttt{"D} & \texttt{"E} & \texttt{"F}
+   & \texttt{y}
+  \end{tabular}
+ \end{center}
+\end{small}
+\end{table}
+
+\begin{Exe}
+次の記述をタイプセットするとどうなるでしょうか。
+\begin{inputex}
+Office~or O\char"0E ce, \AE~or \char'035.\par
+$\Gamma$~or \char'000, ---~or \symbol{"7C}
+\end{inputex}
+予想通り`{\usefont{OT1}{cmr}{m}{n} Office~or O\char"0E ce, \AE~or
+ \char'035. $\Gamma$~or \char'000, ---~or \symbol{"7C}}'となります。
+\end{Exe}%"
+
+直接文字コードを指定するとキーボードからアクセスできないようなコマンドに
+アクセスできるようになります。しかし、いつも直接コードを指定していると
+痛い目に会います。
+次のファイルをタイプセットすると結果はどうなるでしょう。
+\begin{inputex}
+\documentclass{article}
+\usepackage[T1]{fontenc}
+\usepackage{txfonts}
+\begin{document}
+Office~or O\char"0E ce, \AE~or \char'035.\par
+$\Gamma$~or \char'000, ---~or \symbol{"7C}
+\end{document}
+\end{inputex}
+どうやら \Option{T1}というエンコーディングと \Option{OT1} では
+記号の配置が異なるので結果は`{\usefont{T1}{txr}{m}{n} Office~or
+ O\char"0E ce, \AE~or \char'035. $\Gamma$~or \char'000, ---~or
+ \symbol{"7C}}'となってしまうようです。
+この理由を知るには \option{T1}エンコーディングである \fl{txr} の
+コード一覧を見てみる必要がありそうです。
+%
+\begin{table}[htbp]
+\begin{small}
+ \makeatletter
+ \newcommand*\fntsymb[1]{{\usefont{T1}{txr}{m}{n}\char#1}}
+ \newcommand*\fnttbl[1]{%
+   \fntsymb{'#10} & \fntsymb{'#11} &  \fntsymb{'#12} & \fntsymb{'#13} &%
+   \fntsymb{'#14} & \fntsymb{'#15} &  \fntsymb{'#16} & \fntsymb{'#17} &%
+ }
+ \makeatother
+ \begin{center}
+  \caption{\fl{txr}中の記号一覧}\label{tab:txr}
+  \begin{tabular}{c|cccccccc|c}
+   \textit{x}
+   & \textit{'0} & \textit{'1} & \textit{'2} & \textit{'3}
+   & \textit{'4} & \textit{'5} & \textit{'6} & \textit{'7}
+   &  \\ \hline
+   \textit{'00x} & \fnttbl{00} \texttt{"0x} \\ \cline{1-9}
+   \textit{'01x} & \fnttbl{01} \texttt{"0y} \\ \hline
+   \textit{'02x} & \fnttbl{02} \texttt{"1x} \\ \cline{1-9}
+   \textit{'03x} & \fnttbl{03} \texttt{"1y} \\ \hline
+   \textit{'04x} & \fnttbl{04} \texttt{"2x} \\ \cline{1-9}
+   \textit{'05x} & \fnttbl{05} \texttt{"2y} \\ \hline
+   \textit{'06x} & \fnttbl{06} \texttt{"3x} \\ \cline{1-9}
+   \textit{'07x} & \fnttbl{07} \texttt{"3y} \\ \hline
+   \textit{'10x} & \fnttbl{10} \texttt{"4x} \\ \cline{1-9}
+   \textit{'11x} & \fnttbl{11} \texttt{"4y} \\ \hline
+   \textit{'12x} & \fnttbl{12} \texttt{"5x} \\ \cline{1-9}
+   \textit{'13x} & \fnttbl{13} \texttt{"5y} \\ \hline
+   \textit{'14x} & \fnttbl{14} \texttt{"6x} \\ \cline{1-9}
+   \textit{'15x} & \fnttbl{15} \texttt{"6y} \\ \hline
+   \textit{'16x} & \fnttbl{16} \texttt{"7x} \\ \cline{1-9}
+   \textit{'17x} & \fnttbl{17} \texttt{"7y}\\\hline
+   \textit{'20x} & \fnttbl{20} \texttt{"8x} \\ \cline{1-9}
+   \textit{'21x} & \fnttbl{21} \texttt{"8y}\\\hline
+   \textit{'22x} & \fnttbl{22} \texttt{"9x} \\ \cline{1-9}
+   \textit{'23x} & \fnttbl{23} \texttt{"9y}\\\hline
+   \textit{'24x} & \fnttbl{24} \texttt{"Ax} \\ \cline{1-9}
+   \textit{'25x} & \fnttbl{25} \texttt{"Ay}\\\hline
+   \textit{'26x} & \fnttbl{26} \texttt{"Bx} \\ \cline{1-9}
+   \textit{'27x} & \fnttbl{27} \texttt{"By}\\\hline
+   \textit{'30x} & \fnttbl{30} \texttt{"Cx} \\ \cline{1-9}
+   \textit{'31x} & \fnttbl{31} \texttt{"Cy}\\\hline
+   \textit{'32x} & \fnttbl{32} \texttt{"Dx} \\ \cline{1-9}
+   \textit{'33x} & \fnttbl{33} \texttt{"Dy}\\\hline
+   \textit{'34x} & \fnttbl{34} \texttt{"Ex} \\ \cline{1-9}
+   \textit{'35x} & \fnttbl{35} \texttt{"Ey}\\\hline
+   \textit{'36x} & \fnttbl{36} \texttt{"Fx} \\ \cline{1-9}
+   \textit{'37x} & \fnttbl{37} \texttt{"Fy}\\\hline
+   & \texttt{"8} & \texttt{"9} & \texttt{"A} & \texttt{"B}
+   & \texttt{"C} & \texttt{"D} & \texttt{"E} & \texttt{"F}
+   & \texttt{y}
+  \end{tabular}
+ \end{center}
+\end{small}
+\end{table}
+
+
+
+  \subsection{カテゴリーコード}
+初級編でカテゴリーコードに関する基本的な事は紹介済みです。
+\Fl{ltplain.dtx} において実際に次のように定義されています。
+\C{catcode} コマンドと特定の\va{文字}を意味する表現 (例えば \verb|`\{|)
+と イコール `$=$' の後に設定したいカテゴリーコードを指定するだけです。%
+\begin{Syntax}
+\C{catcode} \va{文字} $=$ \va{カテゴリーコード}
+\end{Syntax}
+\va{文字}には左シングルクオートを伴う文字表現と、数値表現の両方が
+できます。イコール `$=$' は省略可能です。
+\index{左波括弧}\index{グループの開始}%
+\index{右波括弧}\index{グループの終わり}%
+\index{ドル}\index{数式モードへの移行}%
+\index{アンパサンド}\index{整列区切り}%
+\index{井桁}\index{マクロの変数}%
+\index{ハット}\index{上付き添字}%
+\index{アンダーバー}\index{下付き添字}%
+\index{タブ文字}\index{スペース}%
+\index{チルダ}%
+\index{NULL文字}\index{無効文字}%
+\index{改行文字}\index{入力ファイルの行の終わり}%
+\index{バックスラッシュ}\index{エスケープ文字}%
+\index{パーセント}\index{コメント}%
+\index{デリート文字}%
+\index{普通の文字}%
+\begin{inputex}
+\catcode`\\=0 % バックスラッシュ -> エスケープ文字
+\catcode`\{=1 % 左波括弧 -> グループの開始
+\catcode`\}=2 % 右波括弧 -> グループの終わり
+\catcode`\$=3 % ドル -> 数式モードへの移行
+\catcode`\&=4 % アンパサンド -> 整列区切り
+\catcode`\^^M=5 % 改行 (CR) -> 行の終わり
+\catcode`\#=6 % 井桁 -> マクロの変数
+\catcode`\^=7 % ハット -> 上付き添字
+\catcode`\_=8 % アンダーバー 下付き添字
+\catcode`\^^@=9 % NULL 文字 -> 無効
+\catcode`\^^I=10 % タブ文字 -> スペース
+\catcode`\ =10 % スペース -> ホワイトスペース
+\catcode`\A=11 ... \catcode`\Z=11 % 大文字 -> 普通の文字
+\catcode`\a=11 ... \catcode`\z=11 % 小文字 -> 普通の文字
+\catcode`\%=14 % パーセント -> コメント
+\catcode`\^^?=15 % デリート文字 -> 無効
+\catcode`\~=\active % チルダ (\chardef\active=13)
+\catcode`\^^L=\active \outer\def^^L{\par}% form-feed -> \outer\par
+\end{inputex}
+
+\C{catcode} において `\verb|^^M|' のような表現が使われています。
+これは\tabref{tab:texcode}に示す通り、キーボードから直接アクセスできない
+文字を指定するための表現方法です。
+
+これに加えて\Z{アットマーク} `@' は裏側で普通の文字として扱いたいので、
+マクロ・クラス中では以下の様に変更されています。
+\begin{inputex}
+\catcode`@=11 % アットマーク -> 普通の文字
+\end{inputex}
+
+アットマークをアルファベットとして扱うか、そのたの記号として扱うかは
+結構問題となるので、切替えを簡単にするため \C{makeatletter} 
+と \C{makeatother} が用意されています。%
+\Cidx{makeatletter}%
+\Cidx{makeatother}%
+\begin{inputex}
+\def\makeatletter{\catcode`\@=11\relax}
+\def\makeatother{\catcode`\@=12\relax}
+\end{inputex}
+
+
+\Z{索引}を生成するために \C{index} 命令などを使いますが、\C{index} の
+引数中では \TeX の特殊文字が邪魔をしてしまうので、次のように主要な記号を
+そのたの記号にカテゴリーコードを変換する \C{@sanitize} 命令もあります。%
+\Cidx{@sanitize}%
+\Cidx{@makeother}%
+\begin{inputex}
+\def\@makeother{\catcode`#1=12\relax}
+\@sanitize{\@makeother\ \@makeother\\\@makeother\$\@makeother\&%
+  \@makeother\#\@makeother\^\@makeother\_\@makeother\%\@makeother\~} 
+\end{inputex}
+
+カテゴリコードが 11 の 波括弧\pp{グループ区切り}を使うことがあるので、記
+憶の片隅にでも留めておいてください。%
+\Cidx{@charlb}% left brace
+\Cidx{@charrb}% right brace
+\begin{inputex}
+{\catcode`[=1 \catcode`]=2
+\catcode`{=11 \catcode`}=11
+\gdef\@charlb[{]
+\gdef\@charrb[}]
+]% } brace matching
+\end{inputex}
+\C{gdef} などによって命令を定義するにはグループの開始示すカテゴリコード
+`1' の文字と終わりを示す `2' の文字がなければなりません。そのため、
+局所的にそれらを角括弧で代用することで波括弧をグループの開始や終了を
+示す文字として使わないようにしています。\C{catcode} で波括弧のカテゴリー
+コードを変更しているので、最後のグループの終わりは角括弧でなければなりま
+せん。
+
+
+\begin{Exe}
+タイプライタ体の並括弧にアクセスしたいとき、次のどの方法を取るのが無難か
+考えてください。
+\begin{inputex}
+\makeatletter
+% {, } が文字として出てくる
+\string{ \string}\par % NG
+% 括弧の対応が取れることが前提となる
+\bgroup\ttfamily \string{ \string} \egroup \par
+% cmtt10 のように OT1 エンコーディングの場合は OK
+\texttt{\char'173} \texttt{\char'175}\par
+% これは LaTeX に予めあるコマンド
+\texttt{\@charlb} \texttt{\@charrb}\par
+% \{, \} は結局 数式フォントの並括弧を使っている。
+% その証拠に cmr10 に並括弧は存在しない。
+% LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
+% (Font)              using `OMS/cmsy/m/n' instead
+% (Font)              for symbol `textbraceleft' on input line 9.
+\texttt{\{} \texttt{\}}\par % NG
+{\ttfamily \textbraceleft\space \textbraceright}\par % NG
+{\usefont{OT1}{cmr}{m}{n} \texttt{\char'173} \texttt{\char'175}}\par
+{\usefont{T1}{txr}{m}{n} \texttt{\char'173} \texttt{\char'175}}\par
+% 未知のエンコーディングに遭遇したらどうなる?
+\makeatother
+\end{inputex}
+\option{OT1} や \option{T1} エンコーディングのように既知のものしか
+用いられない場合は直接文字コードを指定しても良いのですが、まったく知らな
+いものでも対応できるように、「文字としての並括弧」を使うことが出来
+る \C{@charlb}, \C{@charrb} がもっとも汎用性は高そうですね。
+\end{Exe}
+
+
+\subsection{文中の特殊記号の扱い}
+文中で \verb|< > ^ _ ` ' "| などを記述すると、当然ながらエラーになります。
+しかし、以下の例は恐ろしいことをやっているため、一応出力できるようになっ
+ています。知らないコマンドが沢山ありますので、まだ読まなくても良いです。%"
+\Cidx{ifmmode}%
+\Cidx{sp}%
+\Cidx{sb}%
+\Cidx{active}%
+\Cidx{langle}%
+\Cidx{rangle}%
+\Cidx{texttt}%
+\Cidx{ifSQ}%
+\begin{inputex}
+\documentclass{jarticle}
+\makeatletter
+% "
+\def\dq{"}%"
+\catcode 34=\active
+\newif\ifDQ
+\def"{\ifmmode \rq\rq \else \ifDQ \rq\rq \DQfalse \else 
+  \DQtrue \lq\lq\fi\fi}%" % `^' and `_'
+\catcode`\^=\active
+\catcode`\_=\active
+\def^{\ifmmode \sp \else \^\relax \fi}
+\def_{\ifmmode \sb \else \_\relax \fi}
+% `<' and `>'
+\def\leftangle{<}
+\def\rightangle{>}
+\catcode`\<=\active
+\catcode`\>=\active
+\def<{\ifmmode \leftangle \else $\langle$\fi}
+\def>{\ifmmode \rightangle \else $\rangle$\fi}
+% ` (\lq) and ' (\rq)
+\newif\ifSQ
+\catcode`\'=\active
+\catcode`\`=\active
+\def'{\ifmmode \rq \else \ifSQ \rq \SQfalse \else \SQtrue \lq\fi\fi}
+\def`{\ifmmode \lq \else \SQtrue \lq \fi}
+\makeatother
+\begin{document}
+\texttt{http://www.any.dom.jp/hoge_hoge/}\par
+$hoge_hoge$\par
+<hoge>\par
+Hello, <hoge> is $x<3$.\par
+'Hoge' is my `hoge.' `hoge' is 'hoge'.\par
+d\`am\'e, d\'am\'e\'e\'e\'e. H\"o\"o\"o.\par
+"Hoge" is my ``hoge.'' "hoge'' is ``hoge."\par
+\end{document}
+\end{inputex}
+
+
+ \section{データ型}
+
+\TeX には 
+「カウンタ\pp{\C{count}}」、
+「長さ\pp{\C{dimen}}」、
+「スキップ\pp{\C{skip}}」、
+「数式スキップ\pp{\C{muskip}}」、
+「ボックス\pp{\C{box}}」、
+「トークンリスト\pp{\C{toks}}」、
+「ファイル」などのデータ型変数が存在します。それぞれの変数は各々のコマン
+ドでアロケーションします。「ファイル」に関してはデータ型として扱って良い
+かどうかは疑問が残りますが、簡単のためデータ型に分類しておきます。このよ
+うな型を持つ変数がメモリのある領域に確保されたものを \TeX では\Z{レ
+ジスタ}と呼ぶことにします。
+
+%2147483647
+  \subsection{カウンタ}
+32 ビット長の整数を保存できる「\Z{カウンタ}」なるデータ型が
+あります。\TeX 的には \C{newcount} で確保します。
+符号付なので 2,147,483,647 から $-$2,147,483,647
+(\texttt{"7FFFFFFF} から $-$\texttt{"7FFFFFFF}) の
+数値を10進表記、8進表記、16進表記、文字表記などで指定できます。
+\begin{Syntax}
+\C{newcount}\va{レジスタ名} \\
+\va{レジスタ名} $=$ \va{数値}
+\end{Syntax}
+\va{レジスタ名} には制御綴で適当な名前を付けます。
+確保済かどうかの確認はされません。値を代入するときのイコールは
+省略可能です。カウンタレジスタの中身を表示するには \C{the} を使うもの
+と \C{ronannumeral} を使う方法とがあります。
+\begin{Syntax}
+\C{the} \va{レジスタ名} \pp{\va{レジスタ}の中身を表示}\\
+\C{ronannumeral} \va{レジスタ名} \pp{\va{レジスタ}をローマ数字で表示}\\
+\C{number} \va{レジスタ名} \pp{\va{レジスタ}の数値表現を表示}
+\end{Syntax}
+あるレジスタの数値だけを持ってくるには \C{number} というプリミティブも
+使用できます。
+\C{the} や \C{number} によって中身を取り出すと、その中身は文字列として
+出力されます。
+
+\begin{Exe}
+次の記述をタイプセットして、 その出力結果を吟味してください。
+\begin{inputex}
+\newcount\hoge
+\hoge="FF
+\the\hoge\par \romannumeral\hoge\par \number\hoge\par %"
+\end{inputex}
+\end{Exe}
+
+\begin{Exe}
+次の記述をタイプセットして、その出力結果を吟味してください。
+\begin{inputex}
+\newcount\cnta
+\def\hoge#1{\cnta=#1 \the\cnta\par}
+\hoge{"00000000} \hoge{"00000001}
+\hoge{"7FFFFFFE} \hoge{"7FFFFFFF}
+\hoge{-"7FFFFFFF} \hoge{-"7FFFFFFE}
+\hoge{2147483647} \hoge{-2147483647}
+\hoge{`\a} \hoge{'177} \hoge{`.}
+\end{inputex}
+上記の結果は`0 1 2147483646 2147483647 -2147483647 -2147483646 
+2147483647 -2147483647 97 127 46'となります。
+\end{Exe}
+
+\LaTeX では既に次の三つのカウンタが確保されています。
+\Cidx{@tempcnta}%
+\Cidx{@tempcntb}%
+\Cidx{count@}
+\begin{inputex}
+\newcount\@tempcnta
+\newcount\@tempcntb
+\newcount\count@ % 255 番
+\end{inputex}
+この三つのカウンタはマクロパッケージやクラスファイルの中で
+一時的に使うレジスタとして自由に使用できます。ただし、
+複数のマクロパッケージでこの使い回しのレジスタを使用すると
+値が勝手に書き換えられてしまうので不都合が発生する場合もあります。
+
+% \relax の必要性
+先程の \verb|\def\hoge#1{\cnta=#1 \the\cnta\par}| をもう少し
+工夫して次のように書いたとしましょう。
+\begin{inputex}
+\long\def\set#1#2{#1=#2\the\@tempcnta\par}
+[\@tempcnta=0 \the\@tempcnta]\par
+\set{\@tempcnta}{5}
+\set{\@tempcntb}{\the\@tempcnta}\par
+[\the\@tempcnta], [\the\@tempcntb]\par
+\end{inputex}
+結果は`[0] [50], [5050]'となります。おや、これはなんということでしょう。
+\cmd{set} に本来やってほしいのは 一つ目の引数に二つ目の数値を設定し、
+その中身を表示することにあるはずです。ですが、この場合は表示したい
+数値 \C{the}\C{@tempcnta} が二つ目の引数に続いて代入されて
+しまいます。%実は \C{the} によってレジスタの内容を出力した場合、
+レジスタに値を代入するとき、\TeX は欲張りなので、数値と思しき記述を
+すべて飲み込んでしまうようです。ですから、この場合は「もう少し肩の
+力を抜いてよ」という意味で \C{relax} というプリミティブを使います。
+\C{relax} を次のように \C{set} の中に入れるとどうなるでしょう。
+\begin{inputex}
+\long\def\set#1#2{#1=#2\relax \the\@tempcnta\par} 
+\end{inputex}
+結果は`[0] 5 5 [5], [5]'となることから、ようやくうまく行ったようです。
+
+このように数値\pp{長さを含む}の代入においては、その数値の終わり
+に \C{relax} などを補わなければ、値が意図した結果にならないことがありま
+す。
+
+
+  \subsection{長さ}
+カウンタと同じように「\Z{長さ}」を表すレジスタがあり、これを
+新規に確保するには \C{newdimen} 命令を使います。
+\begin{Syntax}
+\C{newdimen}\va{レジスタ名}\\
+\va{レジスタ名} $=$ \va{数値\OR 長さ}
+\end{Syntax}
+数値の代入方法はカウンタレジスタの場合と同様にできますが、
+加えて長さを代入することが出来ます。さらに \C{the}, \C{number}, 
+\C{ronannumeral} も使用できますが大変なことになります。
+
+\LaTeX では次の六つの長さレジスタが既に確保されています。%
+\Cidx{@tempdima}%
+\Cidx{@tempdimb}%
+\Cidx{@tempdimc}%
+\Cidx{dimen@}%
+\Cidx{dimen@i}%
+\Cidx{dimen@ii}%
+\begin{inputex}
+\newdimen\@tempdima 
+\newdimen\@tempdimb 
+\newdimen\@tempdimc
+\newdimen\dimen@  % 0 番
+\newdimen\dimen@i % 1 番
+\newdimen\dimen@ii% 2 番
+\end{inputex}
+一時的にどのマクロからでも使うことが出来ます。
+
+%\va{長さ}などを指定するためには\Z{単位}が必要になります。
+何かの長さを示すときには，ある基準となる\emph{\Z{単位}}が必要になります．
+単位には絶対的な単位と相対的な単位の2種類があります．絶対的な単位にはメー
+トル\qu{m}のように速度の変化しない\pp{と言われている}光速が進むことので
+きる距離を基準にしているものもあります．
+
+{\TeX}\pp{\pTeX}には\tabref{tab:sunpou}に示すような寸法が用意されていま
+す．
+\begin{table}[htbp]
+ \begin{center}
+  \caption{寸法単位}\label{tab:sunpou}
+  \begin{tabular}{llll}
+   \hline
+   単位& 説明& &実際の長さ\\%$\mathrm{}=\mathrm{}$
+   \hline
+ \str{bp}& \Z{ビッグポイント}   & 72\,bp    $=$ 1\,in    &
+   \demowidth{1truebp}\\
+ \str{cc}& \Z{シセロ}           & 1\,cc     $=$ 12\,dd   &
+   \demowidth{1truecc}\\
+ \str{cm}& \Z{センチメートル}   & 2.54\,cm  $=$ 1\,in    &
+   \demowidth{1truecm}\\
+ \str{dd}& \Z{ディドーポイント} & 1157\,dd  $=$ 1238\,pt &
+   \demowidth{1truedd}\\
+ \str{in}& \Z{インチ}           & 1\,in     $=$ 72.27\,pt&
+   \demowidth{1truein}\\
+ \str{mm}& \Z{ミリメートル}     & 10\,mm    $=$ 1\,cm    &
+   \demowidth{1truemm}\\
+ \str{pc}& \Z{パイカ}           & 1\,pc     $=$ 12\,pt   &
+   \demowidth{1truepc}\\
+ \str{pt}& \Z{ポイント}         &                        &
+   \demowidth{1truept}\\
+ \str{sp}& \Z{スケールポイント} & 65536\,sp $=$ 1\,pt    &
+   \demowidth{1truesp}\\
+   \hline
+ \str{em}& 現在の\qu Mの幅  & & \demowidth{1em}\\
+ \str{ex}& 現在の\qu xの高さ& & \demowidth{1ex}\\
+ \str{zh}& 現在の和文の高さ & & \demowidth{1zh}\\
+ \str{zw}& 現在の和文の幅   & & \demowidth{1zw}\\
+   \hline
+  \end{tabular}
+ \end{center}
+\end{table}
+
+例えば \C{parindent} の値を指定するには次のようにします．
+\begin{inputex}
+\parindent=1zw
+\parindent-10pt
+\parindent 3 em
+\parindent 1.5 zw
+\end{inputex}
+イコール `\string=' はあってもなくても構いません。数値と単位のあいだの空
+白は適当に付けたり付けなかったりして構いません。また、単位の後のホワイト
+スペースは吸収されます。
+
+\begin{Exe}
+次の記述を云々。
+\begin{inputex}
+\@tempdima=65536sp
+\the\@tempdima, \number\@tempdima
+\end{inputex} 
+結果は `1.0pt, 65536' となるでしょう。
+\end{Exe}
+
+\begin{Exe}
+次の記述を云々。
+\begin{inputex}
+\newdimen\dimena
+\newcount\counta
+\dimena=10.55pt \relax
+\the\dimena, \the\counta\par
+\counta=\dimena \relax
+\the\dimena, \the\counta\par
+\dimena=100sp \relax
+\counta=\dimena \relax
+\the\dimena, \the\counta\par 
+\end{inputex}
+結果は`10.55pt, 0'とか`10.55pt, 691405'とか`0.00153pt, 100'となるでしょ
+う。このことからカウンタに長さを代入すると単位を sp としてその数値を
+代入するという事が分かります。sp は \TeX が扱うことが出来る最小の
+寸法単位です。
+\end{Exe}
+
+マクロの中で都合良く`1\,pt'や`0\,pt'を表記するために \C{p@} と \C{z@}
+の二つを次のように確保します。%\C{newdimen} で確保された「長さ」も
+%所詮は 32 ビット長の整数値として表現されているので、長さとして
+%使われなかった場合は、カウンタの`65536'と`0'として扱われますので、
+%都合が良くなるわけです。%
+\Cidx{p@}%
+\Cidx{z@}%
+\begin{inputex}
+\newdimen\p@ \p@=1pt
+\newdimen\z@ \z@=0pt 
+\end{inputex}
+
+\begin{Exe}
+次の記述を云々。
+\begin{inputex}
+\the\p@, \number\p@\par
+\@tempdima=\p@ \relax
+\the\@tempdima, \number\@tempdima\par
+\@tempdima=50\p@ \relax
+\the\@tempdima, \number\@tempdima\par
+\newdimen\dimena \dimena=50pt
+\@tempdima=30\dimena \relax
+\the\@tempdima, \number\@tempdima\par
+\end{inputex} 
+結果は`1.0pt, 65536 1.0pt, 65536 50.0pt, 3276800 1500.0pt, 98304000'とな
+ることから、\verb|50\p@| や \verb|30\dimena| と記述すると
+予めその長さ同士を掛けたものが代入されるようになります。
+しかし、カウンタの場合は同でしょうか。
+\begin{inputex}
+\@tempcnta=30 \relax
+\@tempcntb=5\@tempcnta\relax
+\the\@tempcntb\par
+\@tempcntb=50 \relax
+\@tempcnta=\@tempcnta\@tempcntb \relax
+\the\@tempcnta\par 
+\end{inputex}
+カウンタの場合は \dos{! Missing number, treated as zero.} なる
+エラーが発生し代入できません。どうやら長さレジスタだけに許される
+構文のようです。
+\end{Exe}
+
+
+  \subsection{スキップ}
+\Z{スキップ}は「長さ」「縮み率」「伸び率」の三つの数値を持つレジスタです。
+スキップは可変長の長さで、バネのような役割りをします。
+\begin{Syntax}
+\C{newskip}\va{レジスタ名} \\
+\C{newmuskip}\va{レジスタ名} \\
+\va{レジスタ名} $=$ 
+  \va{長さ} \str{plus} \va{伸び率} \str{minus} \va{縮み率}
+\end{Syntax}
+数式様には \C{newmuskip} を使います。\va{伸び率}と\va{縮み率}は
+省略可能です。
+
+「長さ」の時と同じ様に「スキップ」にも次のような空のスキップ \C{z@skip} が
+確保されています。
+\begin{inputex}
+\newskip\z@skip \z@skip=0pt plus 0pt minus 0pt 
+\end{inputex}
+
+\LaTeX では予め次の三つのスキップレジスタが確保されています。
+\Cidx{@tempskipa}%
+\Cidx{@tempskipb}%
+\Cidx{skip@}%
+\begin{inputex}
+\newskip\@tempskipa 
+\newskip\@tempskipb 
+\newskip\skip@ % 0 番
+%\newskip\@flushglue \@flushglue = 0pt 1fil
+\end{inputex}
+
+
+\begin{Exe}
+次の記述を云々。
+\begin{inputex}
+\@tempskipa=10pt plus 5pt \relax
+\@tempskipb=5\@tempskipa  \relax
+\the\@tempskipa\par
+\the\@tempskipb\par
+\end{inputex} 
+結果は`10.0pt plus 5.0pt 50.0pt'となります。長さの場合の代入と
+同じ様にできますが、\va{縮み率}と\va{伸び率}は消され、\va{長さ}
+だけが代入されることになります。
+\end{Exe}
+
+  \subsection{ボックス}
+ボックスレジスタは何らかのボックスを保存することが出来ます。
+\begin{Syntax}
+\C{newbox}\va{レジスタ名} \\
+\C{setbox}\va{レジスタ名} $=$ \va{ボックス} \\
+\C{box}\va{レジスタ名}
+\end{Syntax}
+ボックスレジスタに内容を保存するには \C{setbox}、中身を使うに
+は \C{box} を用います。
+
+「\Z{ボックス}」も「長さ」の場合と同じ様に \C{voidb@x} が確保されます。
+\begin{inputex}
+\newbox\voidb@x % 中身は空になっている 
+\end{inputex}
+
+\LaTeX では次の使い回しの \C{tempboxa} が用意されています。
+\begin{inputex}
+\newbox\@tempboxa
+\end{inputex}
+
+\begin{Exe}
+次の記述を云々。あるボックスの高さ、深さ、幅を求めるため
+に \C{ht}, \C{dp}, \C{wd} が使えます。中身を見たいときに
+は \C{the} を補います。
+\Cidx{setbox}%
+\Cidx{ht}%
+\Cidx{wd}%
+\Cidx{dp}%
+\Cidx{box}%
+\begin{inputex}
+\setbox\@tempboxa=\hbox{いいい}
+\the\ht\@tempboxa, \the\dp\@tempboxa, \the\wd\@tempboxa\par
+\box\@tempboxa 
+\end{inputex}
+結果は `7.77588pt, 1.38855pt, 28.86649pt いいい'などとなります。
+\end{Exe}
+
+
+\begin{Exe}
+とりあえず、以下の記述を云々。使用されているマクロまでは理解しなくても
+良いので、出力結果だけを吟味してください。
+\begin{inputex}
+\makeatletter
+\fboxrule=.3pt \fboxsep=0pt
+\def\my@word@box#1{\@for\@tempa:=#1\do{\@tempa\space}}
+\def\my@char@fbox#1{%
+  \@tfor\@member:=#1\do{%
+     \if\@member,\space \else
+       \framebox{\phantom{\@member}}\kern-\fboxrule
+     \fi}}
+\def\my@word@fbox#1{\@for\@member:=#1\do{\framebox{\@member}\space}}
+\my@word@box{!,\TeX,capacity,exceeded.,sorry,[main,memory,size=1000001]}\par
+\my@word@fbox{!,\TeX,capacity,exceeded.,sorry,[main,memory,size=1000001]}\par
+\my@char@fbox{!,\TeX,capacity,exceeded.,sorry,[main,memory,size=1000001]}\par
+\makeatother 
+\end{inputex} 
+概ね、次のようになります。
+\begin{OutText}
+\makeatletter
+\fboxrule=.3truept \fboxsep=0pt
+\def\my@word@box#1{\@for\@member:=#1\do{\@member\space}}
+\def\my@char@fbox#1{%
+  \@tfor\@member:=#1\do{%
+     \if\@member,\space \else
+       \framebox{\phantom{\@member}}\kern-\fboxrule
+     \fi}}
+\def\my@word@fbox#1{\@for\@member:=#1\do{\framebox{\@member}\space}}
+\my@word@box{!,TeX,capacity,exceeded.,sorry,[main,memory,size=1000001]}\par
+\my@word@fbox{!,TeX,capacity,exceeded.,sorry,[main,memory,size=1000001]}\par
+\my@char@fbox{!,TeX,capacity,exceeded.,sorry,[main,memory,size=1000001]}\par
+\makeatother  
+\end{OutText}
+普通に出力した1行目と単語単位で \C{framebox} で囲んだ例を見比べてみま
+しょう。さらに2行目と文字単位で囲んだ3行目とを比較してください。
+小文字の`\str p'や`\str y'といったものは他よりも下側に飛び出しており、
+`\str i', `\str t', `\str d'は上側に飛び出しています。大文字は
+常に背が高いようですね。角括弧 \texttt{[}/\texttt{]}は上下ともに
+飛び出しております。
+\end{Exe}
+
+
+  \subsection{トークンリスト}
+「\Z{トークン}」とは \TeX が入力された制御綴などのコマンドや文字列に
+カテゴリーコード\pp{\Z{内部コード}}を割り当てて構文解析した結果です。
+`\verb*|This  is \hspace{21pt}|'というのをトークンに分解すると、
+次のようになります。
+\begin{quote}
+\begin{ttfamily}
+T$_{11}$
+h$_{11}$
+i$_{11}$
+s$_{11}$
+\textvisiblespace$_{10}$
+i$_{11}$
+s$_{11}$
+\fbox{hspace} 
+\ttlb$_{1}$
+2$_{12}$
+1$_{12}$
+p$_{11}$
+t$_{11}$
+\ttrb$_{2}$
+\end{ttfamily}
+\end{quote}
+トークン\pp{またはトークンリスト}は「カテゴリコードを持つ一文字」か「制
+御綴」のいずれかです。上記における添字はそのカテゴリコードを示します。
+\fbox{\texttt{hspace}} にはカテゴリコードがありませんので、制御綴であること
+が分かります。連続した二つのスペース `\verb*|  |' はカテゴリコード 10 の
+一つのスペースに分解されています。
+
+とりあえず、新規にトークンを確保するには \C{newtoks} 命令を使います。
+\begin{Syntax}
+\C{newtoks}\va{レジスタ名} \\
+\va{レジスタ名} $=$ \va{トークンリスト} \\
+\C{the}\va{レジスタ名}
+\end{Syntax}
+\C{newtoks} 命令によって確保されたものを\Z{トークンリストレジスタ}と
+呼びます。レジスタへの代入におけるイコールは案の定省略可能です。
+中身を出すには もちろん \C{the} を使います。
+
+トークンリストには \C{everypar} や \C{output} などのように始めか
+ら \TeX に組み込まれているものもあり、これを\Z{トークンリストパラメータ}
+と呼びます。\C{everypar} は段落が始まる段階に毎回呼び出されるトークン
+リストとなりますし、\C{output} はページを組むためのトークンです。
+
+\LaTeX ではすでに \C{@temptokena} が確保されています。
+\begin{inputex}
+\newtoks\@temptokena
+\end{inputex}
+
+\begin{Exe}
+以下の記述を云々。%
+\Cidx{heartsuit}%
+\Cidx{everypar}%
+\begin{inputex}
+\everypar{$\heartsuit$}
+ほげほげ\par
+ほげほげ\par 
+\end{inputex} 
+結果は、「$\heartsuit$ほげほげ $\heartsuit$ほげほげ」となります。
+例えば \C{everypar} は段落がまさに組まれようとしている時に実行される
+トークンリストパラメータです。これを使って行数を表示することが出来る
+わけです。もう少し工夫すると次のようになります。%
+\Cidx{cnt@lines}%
+\Cidx{par}%
+\Cidx{orig@par}%
+\Cidx{everypar}%
+\Cidx{llap}%
+\Cidx{scriptsize}%
+\Cidx{@arabic}%
+\Cidx{hfill}%
+\begin{inputex}
+それそれ。\par
+うんうん。\par
+% \begin{document} のあとでもここはまだ文章を組み上げる前の
+% 垂直モードにある。
+\makeatletter
+%\parindent=\z@
+\let\orig@par=\par
+\newcount\cnt@lines
+\cnt@lines=\@ne
+\def\par{\advance\cnt@lines\@ne \orig@par}
+\everypar={\llap{\scriptsize\@arabic\cnt@lines:\space}}
+\makeatother
+% ここで垂直モードの終了となり、文章の構成要素が表れるため、
+% \par が自動的に呼び出された事と同義になるため、トークンリスト
+% パラメータ \everypar が呼び出される。
+あれあれ\par
+これこれ\par
+それそれ\par
+だれだれ\par
+どれどれ\par
+ほうほう\hfill そうそう\\ こうこう。\par 
+\end{inputex}
+\LaTeX での \C{par} のオリジナルを \C{orig@par} に保存しておきます。
+次に \C{par} の定義を書き換えます。これは \C{cnt@lines} という行数を
+カウントするカウンタ型変数となり、初期値を 1 にしておきます (行は
+1 行めから始まるため)。次に \C{everypar} なるパラメータに行数を表示する
+ためのトークンリスト
+\begin{inputex}
+\llap{\scriptsize\@arabic\cnt@lines:\space
+\end{inputex}
+を代入します。なんだか、\E{verbatim} 環境に応用できそうな予感がしますね。
+\end{Exe}
+
+%\begin{Exe}
+%以下の記述を云々。
+%\begin{inputex}
+%\def\X{川}
+%\def\A{山} \def\B{\X} \def\C{海}
+%\@temptokena={\A \B \C}
+%\edef\hoge{\A \B \C}
+%\the\@temptokena, \hoge\par
+%\def\X{と}
+%\the\@temptokena, \hoge\par
+%\end{inputex} 
+%\end{Exe}
+
+
+
+
+  \subsection{ブール値}
+「\Z{フラグ}を立てる」とか「\Z{スイッチ}を入れる/切る」とか色々と呼び方は
+ありますが、\LaTeX でもブール型の変数を使うことができます。
+\begin{Syntax}
+\C{newif}\verb|\if|\va{レジスタ名} \\
+\texttt{\bs}\va{レジスタ名}\verb|true| \pp{真にする}\\
+\texttt{\bs}\va{レジスタ名}\verb|false| \pp{偽にする}\\
+\verb|\if|\va{レジスタ名} \va{真の場合} \C{else} \va{偽の場合} \C{fi}
+\end{Syntax}
+判断で使用するとき、\C{else} による \va{偽の場合}は省略可能です。
+
+\LaTeX では既に以下の \C{if@tempswa} が確保されています。
+\Cidx{if@tempswa}%
+\begin{inputex}
+\newif\if@tempswa 
+\end{inputex}
+
+\begin{Exe}
+以下の記述を云々。 
+\begin{inputex}
+\newif\ifcomment
+\commenttrue
+\ifcomment \else
+コメントだよ
+\fi
+\commentfalse
+\ifcomment \else
+コメントかな
+\fi
+\end{inputex}
+結果は「コメントかな」となります。
+\end{Exe}
+
+
+
+  \subsection{アロケーション\texorpdfstring{\zdash}{---}変数領域確保}
+
+\LaTeXe ではあるデータ型の変数を確保する手段としてカウンタを使っています。
+例えば \TeX には 0--255 番までの ボックスレジスタ \C{box} がありますが、
+0--9 番のレジスタは \TeX が使うものとして、他のマクロなどが使ってはいけ
+ません、これは \LaTeX も例外ではありません。そこで \LaTeX では 
+\Z{アロケーション}\pp{変数の領域を確保する}段階で 10 番からボックスレジ
+スタを確保するように設定されています。
+\begin{inputex}
+\count14=9 % \box レジスタは 10, 11,..., 255 を使う
+\end{inputex}
+
+\subsection{\texttt{\bs setbox0} とは}
+よく他人のマクロを覗くと
+\begin{inputex}
+\setbox0=\hbox{#1}
+\@tempdima=\wd0
+\end{inputex}
+などのような記述を見掛けることになります (\LaTeXe ではこれは obsolete な方法
+として推奨されていません)。これは \TeX のボックスレジスタ 0 番に
+\C{hbox} で \verb|#1| を組んだときの 幅 \C{wd} を \C{@tempdima} という長
+さレジスタに代入するという文です。これと等価なことを \LaTeX では
+\begin{inputex}
+\newlength{\hoge}
+\settowidth{\hoge}{#1}
+\end{inputex}
+等とすれば \cmd{hoge} に \verb|#1| の幅が設定されることになります。
+
+実は \TeX のアロケーション処理の実装を覗いてみるとわかるのですが、
+とりあえず、
+\begin{inputex}
+\newbox\hakoA
+\newcount\countA
+\newdimen\dimenA
+\newskip\skipA
+\newtoks\toksA
+\newif\ifA
+hoge\bye
+\end{inputex}
+と書いた \Va{hoge}{tex} を 
+\begin{inputex}
+tex hoge
+\end{inputex}
+として実行し、\Va{hoge}{log}を覗いて下さい。そうすると
+\begin{inputex}
+This is TeX, Version 3.14159 (Web2C 7.4.5) (format=tex 2005.1.31) 
+ 22 FEB 2005 17:37
+**hoge
+(./hoge.tex
+\hakoA=\box16
+\countA=\count26
+\dimenA=\dimen16
+\skipA=\skip18
+\toksA=\toks12
+ [1] )
+Output written on hoge.dvi (1 page, 212 bytes).
+\end{inputex}
+という事になります。これは新規に \cmd{hakoA} というのを用意するときに、
+\TeX は裏側で数字に置き換えている (\C{box} レジスタの 16 番としてアロ
+ケーションしている) ということなのです。この事実から
+\begin{inputex}
+\newbox\hakoA
+\setbox16=\hbox{hoge}% 要するに \hakoA のこと
+\box\the\hakoA % \box 16 に展開される
+\bye
+\end{inputex}
+とすることにより \cmd{hakoA} (16) に \verb|\hbox{hoge}| を代入し、
+`\C{the}\cmd{hakoA}' により
+16 番を取得して \C{box} 命令でその内容を出力しています。別にこのような
+回りくどり方法を取らなくとも
+\begin{inputex}
+\newbox\hakoA
+\setbox\hakoA=\hbox{hoge is hoge.}% これは \setbox \box 16 に展開されそうだが....
+\box\hakoA % これは \box \box 16 にされるのでは心配になるが適切に展開される
+\bye
+\end{inputex}
+としても同じ事です。
+
+このような事実から
+\begin{inputex}
+\setbox0=\hbox{hoge}
+\box0
+\end{inputex}
+とすると
+\begin{inputex}
+hoge
+\end{inputex}
+が出力されるというのはお分かりでしょう。そして 0 番めのボックスレジスタは
+ユーザーのアロケーションの対象外で、誰でも使っても良い一時的 (temp) なもの
+ということが伺えます。
+
+  \subsection{数値表現}
+数値表現の別の方法として \LaTeX では以下のマクロが頻繁に使われています。
+
+\LaTeX では予め、\Fl{ltplain.dtx}にて文字列として次の数値が定義されてい
+ます (\C{@ne}, \C{tw@}, \C{thr@@}, \C{sixt@@n}, \C{@xxxii}, \C{@cclv})。
+\begin{inputex}
+\chardef\@ne=1
+\chardef\tw@=2
+\chardef\thr@@=3
+\chardef\sixt@@n=16
+\chardef\@xxxii=32
+\chardef\@cclv=255
+\end{inputex}
+255 を超える数値に関しては \C{chardef} ではなく \C{mathchardef} を
+使います (\C{@cclvi}, \C{@m}, \C{@M}, \C{@MM})。
+\begin{inputex}
+\mathchardef\@cclvi=256
+\mathchardef\@m=1000
+\mathchardef\@M=10000
+\mathchardef\@MM=20000
+\end{inputex}
+10001--10004 (\C{@Mi}, \C{@Mii}, \C{@Miii}, \C{@Miv}) も同様に定義されて
+います。
+\begin{inputex}
+\mathchardef\@Mi=10001
+\mathchardef\@Mii=10002
+\mathchardef\@Miii=10003
+\mathchardef\@Miv=10004 
+\end{inputex}
+
+%\C{chardef}, \C{mathchardef} によって定義されたマクロは
+%本当に文字として定義されるのでカテゴリーコードが 11 に
+%なります。普通にキーボードから数字を打ち込むと 12 になります。
+
+`$-1$' だけは $-$ と $1$ なので、これは \C{countdef} を
+使い、カウンタとして定義しなければなりません。
+\begin{inputex}
+\countdef\m@ne=22 \m@ne=-1 
+\end{inputex}
+
+\begin{Exe}
+以下の記述を云々。
+\begin{inputex}
+\@tempdima=\z@ \relax       \the\@tempdima\par% 0.0pt
+\@tempdima=\tw@\p@ \relax   \the\@tempdima\par% 2.0pt
+\@tempdima=\@cclv\p@ \relax \the\@tempdima\par% 255.0pt
+\end{inputex} 
+結果は「0.0pt 2.0pt 255.0pt」となるでしょう。
+\end{Exe}
+
+%%\chardef\@ne=1 % \@ne -> \char"1
+%\def\one{1}%" カテゴリーコードは 12.
+%\ifx\@ne\one yes \else no\fi
+%\ifcat\@ne\one yes \else no\fi
+
+
+ \section{演算とか}
+
+さて、一通りデータ型をみてきたので、ここでどのような演算ができるのかちょっ
+と考えてみましょう。それぞれのデータ型に応じた各種操作用のコマンドが色々
+ありますが、ここではもっとも基本的なものを紹介します。
+
+
+\subsection{四則演算}
+{\TeX}での四則演算には「たしざん」「かけざん」「わりざん」が用意されて
+います．「ひきざん」はマイナスを付けて「たしざん」を代用してください。
+\begin{Syntax}
+\C{advance}\va{数値} \str{by} \va{値} \pp{たしざん}\\
+\C{multiply}\va{数値} \str{by} \va{値} \pp{かけざん}\\
+\C{divide}\va{数値} \str{by} \va{値} \pp{わりざん}
+\end{Syntax}
+\str{by} は省略可能です。ていうか、普通は付けません。
+
+\begin{Exe}
+次の記述を云々。
+\begin{inputex}
+\@tempcnta=\tw@ % a = 2
+\advance \@tempcnta by \thr@@ % a + 3 = 5
+\the\@tempcnta\par
+\multiply \@tempcnta by \@ne % a x 1 = 5
+\the\@tempcnta\par
+\divide \@tempcnta \tw@ % a / 2 = 2
+\the\@tempcnta\par
+\end{inputex} 
+結果は`5 5 2'って感じでしょう。
+\end{Exe}
+
+\begin{Exe}
+次の記述を云々。
+\begin{inputex}
+\@tempdima=\tw@ \p@ \relax % a = 2
+{}\the\@tempdima\par
+\advance \@tempdima \p@ \relax % a + 1 = 3
+{}\the\@tempdima\par
+\multiply \@tempdima \thr@@ % a x 3 = 9
+{}\the\@tempdima\par
+\divide \@tempdima \tw@ % a / 2 = 4.5
+{}\the\@tempdima\par 
+\end{inputex}
+結果は`2.0pt 3.0pt 9.0pt 4.5pt'となることから、なんだか長さの
+場合は \C{multiply} と \C{divide} で寸法なしで演算しなければ
+ならないようです。
+\end{Exe}
+
+\begin{Exe}
+次の記述を云々。
+\begin{inputex}
+\@tempskipa = \sixt@@n\p@ \@plus \tw@\p@ \@minus \tw@\p@\relax
+{}\the\@tempskipa\par
+\advance \@tempskipa \p@ \@plus \thr@@\p@ \relax
+{}\the\@tempskipa\par
+\multiply \@tempskipa \thr@@
+{}\the\@tempskipa\par
+\divide \@tempskipa \tw@
+{}\the\@tempskipa\par
+\@tempskipa = -\@tempskipa \relax
+{}\the\@tempskipa\par
+\end{inputex} 
+結果は次のようになります。
+\begin{OutText}
+16.0pt plus 2.0pt minus 2.0pt\par
+17.0pt plus 5.0pt minus 2.0pt\par
+51.0pt plus 15.0pt minus 6.0pt\par
+255.5pt plus 7.5pt minus 3.0pt\par
+-25.5pt plus -7.5pt minus -3.0pt\par
+\end{OutText}
+\str{plus} とか \str{minus} は演算しとして使われているわけではなく、
+伸び率と縮み率を指定するためにあります。かけざん/わりざんをすると長さ、
+伸び率、縮み率が個別に演算されます。
+\end{Exe}
+
+
+試しに `YYYY/MM/DD/ hh:mm' の形式でその原稿をタイプセットした日付を
+求めるマクロを作成します。あらかじめ \C{time} というコマンドに
+その日の 00:00 から経過した「分」が保存されているものとします。
+一時用のカウンタ \C{count@} \pp{「時」用} と \C{count2} \pp{「分」用} が
+用意されているとします。もちろん年月日はそれぞれ \C{year}, 
+\C{month}, \C{day} にあります。
+\begin{inputex}
+\begingroup
+% \time には 00:00 から経過した分数が保存されている
+\count@=\time % \count@ = \time
+\divide \count@ by 60 % (\time / 60 ) = 「時間」
+% ここから「分」を求める
+\count2=-\count@ % -「時間」
+\multiply \count2 by 60 % (- 「時間」 x 60)
+\advance\count2 by \time % \time  - (「時間」 x 60) = 「分」
+% `YYYY/MM/DD/ hh:mm' を出力する \now 命令
+\edef\now{\the\year/\two@digits{\the\month}/\two@digits{\the\day}~%
+   \two@digits{\the\count@}:\two@digits{\the\count2}}
+今日は \now です。
+\endgroup 
+\end{inputex}
+気を付けることとしては「分」を求めるときに行なう演算の順序です。
+括弧の中を先に計算することで必要とする変数を少なくしています。
+また、`2005/1/3~1:23' の場合には `2005/01/03~01:23' となるよう
+に \C{two@digits} を使っています。レジスタの内容を表示するのはもちろ
+ん \C{the} でしたね。
+
+
+  \subsection{柔軟な演算\texorpdfstring{\zdash}{---}\Y{calc}}
+\TeX/\LaTeX の四則演算ではどうも頼りないので、\Y{calc} パッケージの力を
+借りるのも一つの方法です。%実装方法に関してはこの章では触れません。
+\Y{calc} パッケージに関しては『好き好き\LaTeXe マクロ活用編』を参照して
+ください。
+
+
+ \section{条件判断}
+「こっちのりんごのほうが大きいかな」「いやこっちのほうが甘いはず」とか、
+人間は様々な状況で判断をすることがあります。\TeX では「文字」「文字列」
+「カテゴリーコード」「文字コード」「長さ」「奇数」「トークン」などの
+データ型に応じた条件判断用のコマンドがあります。
+判断の形式は基本的に次のように \C{if}, (\C{else},) \C{fi} を含んで
+います。
+\begin{Syntax}
+ \C{if}\va{条件} \va{真の場合} \C{else} \va{偽の場合} \C{fi}
+\end{Syntax}
+\C{else} とか \va{真の場合}、\va{偽の場合}なんかは省略可能ですが、
+\C{fi} だけは省略出来ません。これは分岐の終わりを示すために必ず
+必要です。
+
+
+  \subsection{トークンの判断}
+
+一文字同士の\Z{文字コード}を比較するには \C{if} コマンドを使います。
+\begin{Syntax}
+\C{if}\va{トークン$_{1}$}\va{トークン$_{2}$}
+\end{Syntax}
+いずれかのトークンが制御綴の場合、マクロなどは可能なかぎり展開されます。
+
+次の場合は全て真になります。
+\begin{inputex}
+\long\def\hoge#1#2{\if#1#2 true\else false \fi\par}
+\hoge a a% true
+\def\A{A} \def\B{A}
+\hoge A \A% true
+\hoge \A \B% true 
+\end{inputex}
+\cmd{A} とか \cmd{B} とかは展開すると `A' になるので、
+すべて `true' が出力されます。しかし、次のようなプリミティブを
+比較すると結果は`true false'となります。
+\begin{inputex}
+\long\def\hoge#1#2{\if#1#2 true\else false \fi\par}
+\hoge \let \par % true
+\def\A{A}
+\hoge \A \par % false 
+\end{inputex}
+コマンド \C{let} などはそれ以上展開することが出来ないプリミティブで
+あり展開されつくしたトークン \fbox{\str{let}} になった時に、実はカテゴリー
+コードは 16 として認識されていることになります。このとき文字コードは 256
+として特別扱いされます。
+
+\Z{文字コード}ではなく\Z{カテゴリーコード}を比較するには \C{ifcat} なる
+プリミティブを使います。
+\begin{Syntax}
+\C{ifcat}\va{トークン\mbox{}$_{1}$}\va{トークン\mbox{}$_{2}$}
+\end{Syntax}
+
+次の例では結果は`true false true'となります。
+\begin{inputex}
+\long\def\hoge#1#2{\ifcat#1#2 true\else false\fi\par}
+\hoge * . % true
+\hoge A 1 % false
+\hoge \par \let % true 
+\end{inputex}
+`\str A$_{11}$'と`\str 1$_{12}$'ではもちろん`false'になります。
+\C{par} と \C{let} は共にプリミティブ \fbox{\str{par}\vphantom{let}} 
+と \fbox{\str{let}\vphantom{let}} でカテゴリーコードは 16 となるので
+`true'になります。
+
+トークン同士の性質が同様かどうかを比較するには \C{ifx} を使います。
+\begin{Syntax}
+\C{ifx}\va{トークン\mbox{}$_{1}$}\va{トークン\mbox{}$_{2}$}
+\end{Syntax}
+トークン同士の性質と言ってもピンと来ないので、まずは以下の例を
+実行してみてください。
+\begin{inputex}
+\long\def\hoge#1#2{\ifx#1#2 true\else false\fi\par}
+\hoge * * % true (カテゴリコードも文字コードも同一)
+\hoge \relax \relax % true (まったく同じプリミティブ)
+\hoge \par \let % false (同じカテゴリコード、文字コードでも、中身が違う)
+\def\A{A} \def\B{A} \def\C{\A} \def\D{\B}
+\hoge \A A  % false (制御綴と単なる文字では偽になる)
+\hoge \A \C % false (展開すると同じだが、\C は 2 回の展開が必要なのでだめ)
+\hoge \C \D % false (1 回目の展開で \A, \B となるので、これも偽)
+\hoge \A \B % true  (1 回目の展開で A, A となるので真)
+\hoge \hoge \dame % false (\hoge は定義済み、\dame は未定義)
+\hoge \geho \dame % true (\geho, \dame 共に未定義) 
+\end{inputex}
+星同士 `*' はもちろん真になります。\C{if}, \C{ifcat} の場合とは
+別に \C{par} と \C{let} 同士では偽になります。\cmd{A} と \cmd{B} は
+一回目の展開が行なわれたときに両者が`A'になるので真になります。
+\C{ifx} では両者のトークンが制御綴であった場合、一回目の展開で中身が
+等しければこれも真になります。加えて未定義の制御綴同士も真になります。
+
+
+例えば \pTeX と \JTeX のいずれかを使用しているかを判別するため
+に \C{fmtname}, \C{jfmtname}, \C{pfmtname} を調べることがあります。
+% fmtname = ptex or jplain
+% jfmtname = JLaTeX2e
+% pfmtname = pLaTeX2e
+%\pLaTeXe では \C{pfmtname} という制御綴が定義されていますので
+%これが定義済みかどうか、\JLaTeXe の場合は \C{jfmtname} を調べます。
+
+
+
+  \subsection{整数の判断}
+整数やカウンタレジスタを比較するには \C{ifnum} プリミティブを、
+奇数かどうかを判断するには \C{ifodd} を使います。
+\begin{Syntax}
+\C{ifnum}\va{数値\mbox{}$_{1}$}\va{関係演算子}\va{数値\mbox{}$_{2}$} \\
+\cmd{ifodd}\va{数値} 
+\end{Syntax}
+関係演算子は\string<, \string>, \string=のいずれかしか使用できません。
+
+
+\Cidx{ifnum}%
+\Cidx{number}%
+例えば日付の`2005/1/3'を`2005/01/03'のように一桁だけの数値に
+自動的に 0 を付加するには \C{two@digits} なる命令を使います。
+\begin{inputex}
+\def\two@digits#1{\ifnum#1<10 0\fi\number#1}
+\end{inputex}
+\Cidx{three@digits}%
+さらに三桁以上の場合でも同様に定義できます。
+\begin{inputex}
+% 100 以下ならば 10 以下であることは明白なので \ifnum の中に
+% それ以降の \ifnum をいれてしまう。このようにすることで判断
+% の回数を減らすことができる。
+\def\three@digits#1{\ifnum#1<100 0\fi \ifnum#1<10 0\fi\number#1}
+\end{inputex}
+
+
+\begin{Exe}
+以下の記述を云々。
+\begin{inputex}
+\@tempcnta=\z@
+\ifnum \@tempcnta >0 true\fi
+\def\hoge{\ifnum \@tempcnta<11 \the\@tempcnta,\space
+   \advance \@tempcnta \@ne \hoge\fi}
+\hoge 
+\end{inputex} 
+結果は`0, 1, 2, 3, 4, 5, 6, 7, 8, 9. 10,'となります。
+これは『もしも \C{@tempcnta} が 11 未満ならば、その内容を
+出力し、\C{@tempcnta} をインクリメントしてから再帰的に \cmd{hoge} を呼び
+出す』ということを行なっていますので、擬似的な for 文を実現しています。
+しかし、実は \C{ifnum} による擬似的な再帰処理を行なうときに \C{fi} 
+が \cmd{hoge} の後方にあるため、\cmd{hoge} が \C{ifnum} の処理を
+終わる前よりも先に実行されることになります。そのため、先に \C{ifnum} を
+終わってもらうようにするためには \C{expandafter} なるプリミティブを
+使うことになります。とりあえず次のようにするのが \TeX に親切な方法です。
+\begin{inputex}
+ \def\hoge{\ifnum \@tempcnta<11 \the\@tempcnta,\space
+   \advance \@tempcnta \@ne \expandafter\hoge\fi}
+\end{inputex}
+\end{Exe}
+
+
+場合分けによって数値を判断するには \C{ifcase} 文を用います。
+\begin{Syntax}
+ \C{ifcase}\va{数値}
+   \va{0の場合}\C{or}
+   \va{1の場合}\C{or}
+   $\cdots$\C{or}
+   \va{$n$の場合}\C{else}
+   \va{それ以外}\C{fi}
+\end{Syntax}
+
+例えば 太陽暦の 5 月を 太陰暦の皐月に自動的に変換したいときに (陽暦の 5 月
+が陰暦の皐月ではないというツッコミはおいといて) \C{ifcase} なる分岐命令が
+使えます。
+
+さて、次のように定義すると「5 月は陰暦で皐月でしょう。」という出力になります。
+\begin{inputex}
+\newcommand*\oldreki[1]{%
+  \ifcase #1 \or 睦月\or 如月\or 弥生\or 卯月\or 皐月\or
+  水無月\or 文月\or 葉月\or 長月\or 神無月\or 霜月\or 師走\fi}
+5 月は陰暦で\oldreki{5}でしょう。
+\end{inputex}
+
+
+
+  \subsection{長さの判断}
+単位付きの長さを比較するには \C{ifdim} を使います。
+\begin{Syntax}
+\C{ifdim}\va{寸法\mbox{}$_1$}\va{関係演算子}\va{寸法\mbox{}$_2$}
+\end{Syntax}
+
+\begin{Exe}
+以下の記述を云々。
+\begin{inputex}
+\@tempdima=\thr@@\p@ % a = 3pt
+\ifdim \@tempdima > \p@ true\else false\fi\par
+\ifdim 10pt < 11pt true\else false\fi\par
+\ifdim \@tempdima = \thr@@\p@ true\else \false\fi\par 
+\end{inputex} 
+結果は`true true true'となります。
+\end{Exe}
+
+\subsection{常に真、常に偽}
+なんに使えるのかちょっと悩んでしまいますが、「常に真になる」とか「常に
+偽になる」というプリミティブが用意されています。
+\begin{Syntax}
+\C{iftrue}  \pp{常に評価が真になる} \\
+\C{iffalse} \pp{常に評価が偽になる}
+\end{Syntax}
+
+とりあえず、以下の具体例を実行してみてください。
+うまく行けば「\Z{うぐぅ}」と表示されるはずです。
+\begin{InOut}
+\iftrue % -> true になる
+う% true
+\else
+ここは実行されない。% false
+\fi
+\iffalse % -> false になる
+ここも実行されない% true
+\else
+ぐぅ% false
+\fi 
+\end{InOut}
+
+\begin{Exe}
+これは \C{let} を使うと面白いことが出来ます。
+\begin{inputex}
+\iftrue
+ここは表示される
+\fi
+\iffalse
+ここは常に表示されない
+\fi
+% \comment \endcomment を作る
+\let\comment\iffalse
+\let\endcomment\fi
+\comment 
+ここもコメントアウトされる。
+\endcomment
+\renewenvironment{comment}{\iffalse}{\fi}
+\begin{comment}
+ここはどうなるだろうか
+\end{comment}
+\end{inputex}
+どうやら \C{renewenvironment} で定義した \E{comment} 環境では
+エラーになるようです。これはまた別の話ですが\ldots.
+\end{Exe}
+
+  \subsection{柔軟な条件判断\texorpdfstring{\zdash}{---}\Y{ifthen}}  
+\ppl{Leslie Lamport}と\ppl{David Carlisle}による \Y{ifthen} パッケージを
+使うと、柔軟な条件判断のコマンドが使えるようになります。
+\begin{Syntax}
+\C{ifthenelse}\pa{条件文}\pa{真の場合}\pa{偽の場合} \\
+\C{whiledo}\pa{条件文}\pa{処理}
+\end{Syntax}
+\C{ifthenelse} \C{whiledo} における\va{条件文}としては長さの比較
+(\C{lengthtest})、奇数かどうかの判定 (\C{isodd})、文字列の比
+較 (\C{equal}) などがあります。
+\begin{Syntax}
+\C{boolean}\pa{名前} \pp{ブール値を評価} \\ %%
+\C{isodd}\pa{数値} \pp{奇数かどうか}\\ %%
+\C{equal}\pa{文字列\mbox{}$_1$}\pa{文字列\mbox{}$_2$} \\
+\C{lengthtest}\va{\va{長さ\mbox{}$_1$} \va{関係演算子} \va{長さ\mbox{}$_2$}} 
+\end{Syntax}
+
+とりあえず、ブール型変数に関するコマンドも追加されています。
+\begin{Syntax}
+\C{newboolean}\pa{名前} \\
+\C{setboolean}\pa{名前}\pa{\str{true}\OR\str{false}} 
+\end{Syntax}
+
+\begin{Exe}
+以下の記述を云々。
+\begin{inputex}
+あれは\ifthenelse{\isodd{\pageref{are}}}{奇数}{偶数}ページにあります。
+この文書は\ifthenelse{\boolean{draft}}{完成版}{未完成版}です。
+\end{inputex}
+結果は「あれは奇数ページにあります。この文書は完成版です。」などとなるで
+しょう。
+\end{Exe}
+
+\begin{Exe}
+以下の記述を云々。
+\begin{inputex}
+\def\A{ほげ}  \def\B{ほげ}
+う、\ifthenelse{\equal{\A}{\B}}{うみぃー}{うぐぅ}\par
+多分\ifthenelse{\lengthtest{\textwidth < \textheight}}{縦置き}{横置き}だろう
+\end{inputex}
+結果は「う、うみぃー 多分縦置きだろう」となるでしょう。
+\end{Exe}
+
+\begin{Exe}
+以下の記述を云々。
+\begin{inputex}
+\newboolean{hoge}
+\ifthenelse{\boolean{hoge}}{true}{false}
+\setboolean{hoge}{true}
+\ifthenelse{\boolean{hoge}}{true}{false} 
+\end{inputex} 
+結果は`false true'となります。
+\end{Exe}
+
+
+\begin{Exe}
+以下の記述を云々。
+\begin{inputex} 
+\newcounter{hoge}
+\setcounter{hoge}{100}
+\whiledo{\value{hoge}<107}{\roman{hoge}\space\stepcounter{hoge}}
+\end{inputex}
+結果は`c ci cii ciii civ cv cvi cvii cvii'となります。
+\end{Exe}
+
+\C{and}, \C{or}, \C{not}, \C{(}, \C{)} を使うと\Z{複合条件判断}もできます。
+
+\begin{Exe}
+以下の記述を云々。
+\begin{inputex}
+\newboolean{A} \newboolean{B} % 入力 A/B
+\newcommand*\TF[1]{\ifthenelse{\boolean{#1}}{1}{0}}% 論理値を出す
+\newcommand*\SET[2]{\setboolean{A}{#1}\setboolean{B}{#2}}% 入力 A/B の値の設定
+\newcommand*\AND[2]{% 論理積
+AND(\TF{A}, \TF{B}) $=$ \ifthenelse{\boolean{A}\and\boolean{B}}{1}{0}}
+\newcommand*\XOR[2]{% 排他的論理和
+XOR(\TF{A}, \TF{B}) $=$ \ifthenelse{%
+    \( \(\not \boolean{#1}\) \and \boolean{#2}\)\or 
+    \( \boolean{#1} \and \(\not \boolean{#2}\)\)}{1}{0}}
+\SET{false}{false} \AND{A}{B}, \XOR{A}{B}\par
+\SET{false}{true}  \AND{A}{B}, \XOR{A}{B}\par
+\SET{true}{false}  \AND{A}{B}, \XOR{A}{B}\par
+\SET{true}{true}   \AND{A}{B}, \XOR{A}{B}\par 
+\end{inputex}	 
+結果は次のようになります。
+\begin{OutText}
+AND(0, 0) $=$ 0, XOR(0,0) $=$ 0\par
+AND(0, 1) $=$ 0, XOR(0,1) $=$ 1\par
+AND(1, 0) $=$ 0, XOR(1,0) $=$ 1\par
+AND(1, 1) $=$ 1, XOR(1,1) $=$ 0
+\end{OutText}
+\end{Exe}
+
+
+ \section{マクロの調べ方}  
+
+他人が作成したマクロを使っていて、そのマクロの定義等を調べたいときがあり
+ます。または単にレジスタの内容が知りたいときあります。これらを調べるに
+は \C{meaning} とか \C{show} などのプリミティブが使えます。
+
+
+   \subsection{定義を調べる}%\show
+例えば、長さレジスタ \C{@tempdima} が何番にアロケーションされているかを
+調べるには \C{show} というプリミティブを使って調べます。
+\begin{Syntax}
+ \C{show}\va{トークン}
+\end{Syntax}
+\C{show} に与える引数の \va{トークン} は制御綴でもレジスタでも文字でも、
+なんでも構いません。\TeX が\emph{一つのトークンとして}読めるものであれば
+何を書いても答えてくれます。
+
+長さレジスタ \C{@tempdima} のアロケーションを調べるには次のようにします。
+\begin{inputex}
+\makeatletter
+\show\@tempdima
+\makeatother 
+\end{inputex}
+\C{@tempdima} の結果が得られます。この場合は結局のところ \C{@tempdima}
+というトークンを展開すると \cmd{dimen14} になるという事が分かります。
+\begin{OutTerm}
+> \@tempdima=\dimen14.
+l.2 \show\@tempdima
+\end{OutTerm}
+コンソールに `?' と表示されますが、構わず \key{Enter} を押してしまって
+構いません。
+
+\begin{Exe}
+次の記述を云々。
+\begin{inputex}
+\show\relax % プリミティブ
+\show\everypar % プリミティブ
+\show\hoge % 未定義
+\show\show % プリミティブ
+\show\section % 節見出し
+\end{inputex} 
+結果は次の通りです。
+\begin{OutTerm}
+> \relax=\relax.
+> \everypar=\everypar.
+> \hoge=undefined.
+> \show=\show.
+> \section=\long macro:
+->\@startsection {section}{1}{\z@ }{1.5\Cvs \@plus .5\Cvs \@minus .2\Cvs
+}{.5\Cvs \@plus .3\Cvs }{\reset@font \Large \bfseries }.
+\end{OutTerm}
+\C{relax}, \C{everypar}, \C{show} はプリミティブなので、そのまま同じ表示
+になります。 \C{hoge} というコマンドが未定義の場合は `\texttt{\Z{undefined}}' と言
+われてしまいます。 \C{section} は改段落を含んでも良い、 (\C{long}) を伴
+うマクロだと分かりますし、\C{@startsection} という別のマクロを呼び出して
+いることになっています。
+\end{Exe}
+
+  \subsection{中身を調べる}
+長さレジスタ \C{@tempdima} の場合はその中身の数値が知りたいときがあ
+るのでレジスタの内容を表示するプリミティブ \C{showthe} があります。
+\begin{Syntax}
+\C{showthe}\va{レジスタ名}
+\end{Syntax}
+\va{レジスタ名}には \C{toks}, \C{dimen}, \C{skip} などが使えることになり
+ます。
+
+\begin{Exe}
+次の記述を云々。
+\begin{inputex}
+\newcommand\myshowthe[2]{#1=#2\relax \noindent\show#1, \showthe#1\par}
+\myshowthe{\@tempdima}{1cm}
+\myshowthe{\@tempskipa}{1cm plus 1mm minus 1mm}
+\@temptokena={\section} 
+\noindent \show\@temptokena, \showthe\@temptokena\par
+\setbox\@tempboxa=\hbox{show}
+\noindent \show\@tempboxa, \showthe\@tempboxa\par
+\end{inputex} 
+ただし \C{box} の場合はうまくいっているのかどうか分かりませんね。
+これはまた別のコマンドがありそうです。
+\end{Exe}
+
+
+しかし、毎回タイプセットの中断をして \C{show} コマンドで定義を調べるのも
+面倒なので、そのまま文書にタイプセットしてくれる \C{meaning} なるプリミ
+ティブがあります。
+\begin{Syntax}
+\C{meaning}\va{トークン}
+\end{Syntax}
+
+\begin{Exe}
+次の記述を云々。
+\begin{inputex}
+\ttfamily
+\meaning\relax    \par % プリミティブ
+\meaning\everypar \par % プリミティブ
+\meaning\hoge     \par % 未定義
+\meaning\show     \par % プリミティブ
+\meaning\section % 節見出し 
+\end{inputex} 
+当り前ですが \C{show} の場合と同じ内容になっています。
+レジスタ等の中身を配置したいときは \C{the} プリミティブを使えば
+良いだけです。
+\begin{inputex}
+\ttfamily
+\newcommand\myshowthe[2]{#1=#2\relax \the#1\par}
+\myshowthe{\@tempdima}{1cm}
+\myshowthe{\@tempskipa}{1cm plus 1mm minus 1mm}
+\end{inputex}
+\end{Exe}
+
+  \subsection{頑丈なマクロを調べる}
+
+例えば \C{LaTeX} のような頑丈 (robust) なコマンドの定義内容を調べようと
+`\C{meaning}\C{LaTeX}'とすると `\str{macro:->\C{protext} \C{LaTeX}}' と
+なるため、本来の定義内容を知ることが出来ません。\LaTeX 標準のコマンド
+であれば大抵は \Fl{source2e.tex} をタイプセットしたものから検索すること
+ができます。どこからやってきたのかも分からない場合も含めて \C{protect} 
+されているコマンドは次のようにすると簡単に定義内容を調べることが出来ます。
+\begin{Syntax}
+\C{let}\C{protect}\va{\C{show}\OR\C{meaning}}\va{制御綴}
+\end{Syntax}
+
+\begin{Exe}
+次の記述を云々。
+\begin{inputex}
+\long\def\ccs#1{\noindent \bgroup \ttfamily
+   \string#1\space$=$\space\meaning#1\egroup\par}
+% \TeX は大抵 robust ではない、\LaTeX は robust の場合が多い
+\ccs \TeX   \ccs \LaTeX
+\long\def\robustccs#1{\noindent \bgroup \ttfamily
+   \let\protect\meaning \string#1\space$=$\space#1\egroup\par}
+% \protect されていないもの使うと、#1 がそのまま出力される
+\robustccs \TeX   \robustccs \LaTeX 
+\end{inputex} 
+\C{protect} を付加されていないコマンドはそのままコマンドが文中で使われた
+ことと同じになります。\C{string} はとりあえず、この場合はバックスラッシュ
+を普通の文字に変換できる特殊なコマンドとして解釈してください。 
+\end{Exe}
+
+\section{そのほか気を付けること}
+
+\subsection{何もしないけど役に立つ命令}
+あぁ、たりぃ、めんどくせぇ。
+\begin{inputex}
+ここで文章が終わる\\
+[{\Large みだし}]\\
+ここから文章が始まる。
+\end{inputex}
+はエラーになるぞぉ。
+\begin{inputex}
+ここで文章が終わる\\\relax
+\end{inputex}
+とか
+\begin{inputex}
+ここで文章が終わる\\{}
+\end{inputex}
+とか
+\begin{inputex}
+ここで文章が終わる\\\empty
+\end{inputex}
+などとしないとだめぽ。
+
+要するに \TeX は改行も一つのスペースにしてしまうので、
+次の行の先頭にある要素も前の行の引数と誤認する可能があります。
+また数値表現等が次の行に表れるとこれも引数として取られることがあります。
+ですから、数値表現のあとや任意引数を取るようなマクロのあとには \C{relax}
+を補うようにします。\C{empty} の場合はトークンとして \TeX が処理するとき
+に吸収されてなくなります。
+
+
+\subsection{ホワイトスペースの扱い}
+\TeX では次のような規則に基づいてタブ、空白、改行を処理しています。
+\begin{itemize}
+ \item 二つ以上の連続するスペースは一つの空白とする。
+ \item 一つの改行は一つのスペースになる。
+ \item 連続した改行は改段落とする。
+ \item タブは一つのスペースになる。
+\end{itemize}
+これ以外にもちょっと考えないといけない事があるのですが、とりあえず
+以下の例を実行してください。
+\begin{inputex*}
+ABCDEF\par
+          GHIJK\par    
+A\hskip0emA\par
+A\hskip 0 em
+A\par
+\def\hoge{
+   Foo Bar Foo Bar
+   Foo Bar Foo Bar
+}
+\hoge dore\par
+\def\hoge{%
+   Foo Bar Foo Bar%
+   Foo Bar Foo Bar%
+}
+\hoge dore\par
+                               HHHH
+\end{inputex*}
+随所で \TeX がスペースを食べていることが分かります。
+4行目の単位付の数値における部分でも空白が取られています。
+\cmd{hoge} を定義するときに最後のグループの終わりの括弧の前に
+改行があるので、これが一つのスペースになっています。二つ目の \cmd{hoge}
+では次の`dore'とくっついています。
+
+\section{なんたら}
+
+\endinput
+
+\string
+\jobname
+\csname \endcsname
+\expandafter
+\noexpand
+\input
+\endinput

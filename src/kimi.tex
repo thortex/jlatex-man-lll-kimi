@@ -1,0 +1,45 @@
+\documentclass[a4j,11pt,disablejfam,papersize,dvipdfm]{jsbook}%
+%\documentclass[a4j,11pt,disablejfam,papersize,dvipdfm,draft]{jsbook}%
+%\documentclass[b5var,10pt,disablejfam,papersize,dvipdfm]{jsbook}%
+\usepackage{lll}%
+%\ifdraft\includeonly{03basics}\fi%
+\begin{document}%
+\makeatletter%
+% \usepackage{filename} -> \@gobble
+\global\let\usepackage\@gobble%
+\def\thepage{front.\arabic{page}}%
+\newif\ifHyper
+\def\texorpdfstring#1#2{#1}
+\makeatother%
+\ifdraft\def\MARU#1{(#1)}\else%
+\maketitle%
+\frontmatter%
+\include{01preface}% まえがき
+\include{02thanx}% 謝辞
+\tableofcontents%
+\fi%
+\mainmatter%
+\include{03basics}% マクロ作成の基礎知識 *.ptx
+\include{04latexe}% \LaTeXe 解体 *.ltx
+\include{05classe}% クラス解体 *.cls
+\include{06macros}% マクロ解体 *.sty
+\include{07applic}% 応用 *.*
+\include{memo3}%
+\include{memo4}%
+\include{memo5}%
+\include{memo9}%
+\begin{appendix}%
+\ifdraft \else%
+\include{fdl}%
+\fi%
+\end{appendix}%
+\backmatter%
+\nocite{*}%
+\bibliographystyle{splain}%
+\bibliography{kimi}%
+\printglossary%
+\printindex%
+\ifdraft \else%
+\printokuduke%
+\fi%
+\end{document}%

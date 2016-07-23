@@ -1,0 +1,713 @@
+\chapter{応用と実例}
+
+
+
+\subsection{表紙の作成}
+さて，次のような学位論文用の表紙を作りたいとしましょう．
+通常のクラスファイルが提供している表代用の命令には
+\begin{Syntax}
+\C{title} \C{author} \C{date} \C{maketitle} 
+\end{Syntax}
+などが用意されています．これらと同じような処理を
+すれば表紙をカスタマイズできそうです．では
+\begin{inputex}
+\def\date#1{\gdef\@date{#1}} 
+\gdef\@date{\today}
+\end{inputex}
+
+\makeatletter
+\ifx\@empty\empty  hoge\else geho\fi
+\ifx\@empty\@empty  hoge\else geho\fi
+\ifx\empty\empty   hoge\else geho\fi
+\makeatother
+
+\section{問題集の作成}
+
+さて、\Y{theorem} パッケージを使って、「例題型環境」や
+「問題型環境」を作成してみましょう。
+
+例えば次のような仕様のマクロを作成しようとしましょう。
+\begin{quote}
+問題と解答を同じ場所に執筆し、何らかの切り替えで解答側の
+文章を別のファイル\Fl{kaito.tex}に書き出せるようにし、
+巻末で解答を表示する。
+\end{quote}
+ここで使用例をまず示します。
+\begin{inputex}
+\begin{Toi}
+\begin{mondai}
+問題を作成することは簡単かどうか、10文字以内で答えなさい。
+\end{mondai}	
+\begin{kaito}
+非常に簡単ではない。
+\end{kaito}
+\end{Toi}
+\end{inputex}
+
+
+\begin{Prob}
+問題を作成することは簡単かどうか、10文字以内で答えなさい。
+\end{Prob}
+ここで、別ファイルに解答を書き出すには{\TeX}のファイル出力機能を
+使います。各問題における解答を一つの別ファイルに書き出し、
+原稿ファイルの末尾、いわゆる巻末にすべての解答を読み込みます。
+それをどのように実装するか、丁寧に解説します。
+
+まず、「問題」は章カウンタ（chapter）と連動して問題番号を
+表示してほしいものです。これには\Y{theorem}パッケージが
+流用できそうですから、今回はこのパッケージを使うことにします。
+今回は「問題」部分に特別な処理をしなくても良いと思いますが、
+今後のことも考えて環境だけは定義しておきます（このようにすると
+簡単に将来の拡張に対して対応できます）。
+\begin{inputex}
+%\theorembodyfont{\normalfont}%プリアンブルで	
+%\newtheorem{myToi}{問}[chapter]%プリアンブルで	
+\newenvironment{Toi}{\begin{myToi}}{\end{myToi}%
+  \label{toi:\c@myToi}}
+\newenvironment{mondai}{}{}
+\end{inputex}
+さて、次は肝心の \E{kaito} 環境を定義します。{\TeX}でファイル出力
+を使用するためには、まず \C{newwrite} 命令で宣言します。
+\begin{Syntax}
+\C{newwrite}\pa{ファイル名用の制御綴り}
+\end{Syntax}
+\C{newwrite} には直接ファイル名をしません。あくまで制御綴りで
+その存在を確保するだけにします。
+\begin{inputex}
+\newwrite\MyKaito
+\immediate\openout\MyKaito\jobname.kai
+\immediate\write\MyKaito{解答だよだけど、改行とかは出力されないよ。}
+\immediate\write\MyKaito{解答だよだけど、改行とかは出力されないよ。}
+\immediate\closeout\MyKaito\newpage
+\input{\jobname.kai}
+\end{inputex}
+上記が簡易な例となります。実際にタイプセットして\fl{\string\jobname.kai}の
+中身を確認してください。このままでは入力原稿の改行などが
+反映されませんので、改行も解答ファイル\fl{\string\jobname.kai}に出力
+するようにします。
+
+\Y{theorem}パッケージ等の力を借りずにきちんと自分で
+カウンタを使って環境を定義しましょう。
+
+\begin{inputex}
+\documentclass{jarticle}
+\makeatletter
+\def\NewProblem{%
+  \newwrite\kaitofile\relax
+  \immediate\openout\kaitofile\jobname.kai%
+  \ifx\chapter\undefined 
+     \newcounter{monmon}%
+  \else
+     \newcounter{monmon}[chapter]%
+     \def\themonmon{\thechapter.\c@monmon}%
+  \fi
+}
+\newenvironment{mondai}{%
+  \refstepcounter{monmon}%
+  \label{mondai:\themonmon}
+  \ifvmode\par\fi {\gtfamily 問~\themonmon}\quad}{\par}
+\newcommand\kaito[1]{\immediate\write\kaitofile{%
+  \string\par{\string\gtfamily\space 解答\space
+     \string\ref{mondai:\themonmon}}%
+  \string\quad\relax#1}}
+\newcommand\KAITO{\immediate\closeout\kaitofile\newpage
+  \ifx\chapter\undefined \section*{解答}\else
+    \chapter*{解答}\fi\input{\jobname.kai}}
+\makeatother
+\begin{document}
+\NewProblem
+\begin{mondai}
+この問題を解け。
+\kaito{解答だよだけど、改行とかは出力されないよ。} 
+\end{mondai}
+\begin{mondai}
+この問題をとけ。
+\kaito{解答だよだけど、改行とかは出力されないよ。}
+\end{mondai}
+\KAITO
+\end{document}
+\end{inputex}
+うーん、これだけでは少しさびしいと思われますので、
+もう少し色をつけます。これでも動くのですが、「解答ファイル」
+には \E{verbatim} 環境のように、記述した内容がそのまま出力されて
+ほしいものです。そこで、今回はこの改造を施します。
+
+
+\subsection{画像ファイルの読み込みの工夫}
+別に画像がないときはそのファイルを読み込んでくれなくても良いので、
+\C{IfFileExists}命令を使って、何か命令を定義しましょう。
+\begin{inputex}
+\newcommand*\Image[1]{\IfFileExists{#1}{あるよ}{ないよ}}
+\Image{hoge.eps}
+\renewcommand*\Image[2][width=.8\linewidth]{\IfFileExists{#2}{%
+  \includegraphics[#1]{#2}}{図版張り込み予定}}
+\begin{figure}[htbp]
+\begin{center}
+\Image[width=.3\linewidth]{hoge.pes}
+\caption{ほげほげ}	
+\end{center}	
+\end{figure}
+\end{inputex}
+まぁ、色々応用できるでしょうから、例題程度に。
+
+
+
+\section{BibTeX で出力した文献一覧 .bbl の著者名の重複処理}
+
+\BibTeX で出力した文献一覧 \Va{file}{bbl}、いわゆる \E{thebibliography}
+環境中にある \C{bibitem} によるエントリを考慮します。 \BibTeX の文献形式
+\Va{file}{bst }ファイルにおいてこのような処理も実装できそうですが、
+\Va{file}{bst} ファイルの編集が面倒だったので、\LaTeX 側で対応します。下
+記の記述を \E{thebibliography} 環境が始まる前に記述すると、著者名が続け
+て重複している場合、二つ目以降を three em-dash で代用します。適宜全角物
+の 4 倍角ダーシにすることもできます。 著者名が 5 人程度で、その人たちの
+文献を 10 個以上引用していると、とんでもないことになるので、応急処置的に
+作製しました。
+\begin{inputex}
+% --------- では途切れることがあるので。
+\DeclareRobustCommand*\iiiemdash{%
+  ---\kern-.5em---\kern-.5em---\kern-.5em---\kern-.5em---} 
+% 著者名が続けて同じならば three em-dash (\iiiemdash) で代替
+\makeatletter
+\let\orig@bibitem\bibitem
+\let\temp@str\@empty
+\global\def\bibitem#1#2\newblock{%
+   \orig@bibitem{#1}% 
+   \def\temp@str{#2} 
+   \ifx\temp@str\previous@str 
+      \iiiemdash.\space\newblock 
+   \else 
+      #2\newblock 
+   \fi 
+   \def\previous@str{#2}% 
+}
+\makeatother
+\end{inputex}
+
+\section{著者名の終わりをピリオドでなくコンマにしたい}
+
+%[[Q & A 33010:http://oku.edu.mie-u.ac.jp/~okumura/texfaq/qa/33010.html]]
+
+3 人以上の著者名を連記できないが \BibTeX スタイル \Va{file}{bst} をいじ
+らない方法。
+\begin{inputex}
+\begin{filecontents*}{hoge.bib}
+@Book{author04,
+  author = {N. Author},
+  title =  {title},
+  publisher =  {publisher},
+  year = 2004
+}
+@Book{taro00,
+  author ={H. Taro and T. Osamu},
+  title =  {title},
+  publisher = {pub},
+  year =  2000
+}
+\end{filecontents*}
+\documentclass{jsarticle}
+\bibliographystyle{jplain}
+\makeatletter
+\let\orig@bibitem\bibitem
+\global\def\bibitem#1#2. \newblock{\orig@bibitem{#1} #2, \newblock}
+\makeatother
+\begin{document}
+\nocite*
+\bibliography{hoge}
+\end{document}
+\end{inputex}
+
+
+\section{参考文献一覧における著者名の重複}
+由緒正しい書籍では参考文献の著者名の重複にダッシュを使う。これは欧文組版の
+場合は three em-dash です。でも \TeX でこれをどうやって出力するのだろう
+ということで。
+\begin{inputex}
+\DeclareRobustCommand*\iiiemdash{%
+   ---\kern-.5em---\kern-.5em---\kern-.5em---\kern-.5em---}
+\end{inputex}
+上記のように定義して、\C{iiiemdash} 程度に使えばよいでしょう。他にもハイ
+フンやダッシュの位置を前後のグリフに合わせてくれるDTP ソフト（もちろん
+InDesign ）があるようだ。明日大学に行ったらちょっとやってみよう。他にも
+\TeX の世界では Type tools なるものがあるようだ。 
+
+\section{電話番号などのハイフンの位置}
+
+電話番号や郵便番号でハイフンを使うのは en-dash を使うのか、忘れてしまい
+ましたが、とりあえず、次のようのマクロを作りました。
+
+\begin{inputex}
+\documentclass[11pt]{jsarticle}
+\makeatletter
+% 電話番号中に出現するハイフン `-' を字上げする長さ
+\newdimen\raiseDim
+% 初期値は エックスハイトの 20%
+\raiseDim=0.2ex
+% 実際にハイフンを上げるコマンド
+\newcommand*\raise@hyphen[1]{%
+% 文字列処理用に \temp@char := '-' を定義
+   \def\temp@char{-}%  
+% 一文字一文字処理する
+   \@tfor\string@temp:=#1\do{%  
+% ある文字 \string@temp が \temp@char と等しい (ハイフンならば)
+      \ifx\string@temp\temp@char  
+% 字上げをする
+         \raise\the\raiseDim\hbox{\temp@char}%  
+% ハイフンではないならば、なにもしない
+      \else  
+         \string@temp  
+    \fi  
+   }%  
+}%
+%
+% 市内局番か市外局番かを判定するブール型レジスタ
+\newif\if@sinai
+% 市内へ切り替え
+\newcommand*\sinai{\@sinaitrue}
+% 市外へ切り替え
+\newcommand*\sigai{\@sinaifalse}
+% 電話番号を記述する環境 \phoneNum[#1]{#2} = #1 :=市外局番, #2 := 市内局番.
+\newcommand*\phoneNum{\@ifnextchar[{\@phoneNum}{\@@phoneNum}}
+% 市外局番がある場合 市外・市内を判定して出力する
+\def\@phoneNum[#1]#2{%
+   \if@sinai   
+      \raise@hyphen{#2}%  
+   \else  
+      (#1)~\raise@hyphen{#2}%  
+   \fi  
+}
+% 市内局番のみの場合
+\def\@@phoneNum#1{\raise@hyphen{#1}}
+\makeatother
+\begin{document}
+10-1111, (011)~10-3333\par
+\sinai
+\phoneNum{10-1111}, \phoneNum[011]{10-3333}\par
+\sigai
+\phoneNum{10-1111}, \phoneNum[011]{10-3333}
+\end{document}
+\end{inputex}
+
+
+\section{\pTeX と\JTeX の判別}
+単純に \pLaTeXe であるかを調べるには
+\begin{inputex}
+\ifx\pfmtname\@undefined ?\else \pLaTeX!\fi
+\end{inputex}
+とすれば、\C{pfmtname} が定義されていれば \pLaTeXe であるとします。
+同様に \JLaTeXe も
+\begin{inputex}
+\ifx\jfmtname\@undefined ?\else \JlaTeX!\fi
+\end{inputex}
+として判定できます。もっと厳密に判定する時は次のようにします。
+\begin{inputex}
+\documentclass{jsarticle}
+\begin{document}
+\makeatletter
+\ifx\pfmtname\@undefined
+  \ifx\jfmtname\@undefined
+    \def\temp@str{ptex}
+    \ifx\fmtname\temp@str
+      \pTeX!
+    \else
+      \def\temp@str{jplain}
+      \ifx\fmtname\temp@str
+        \JTeX!
+      \else
+        \def\temp@str{plain}
+        \ifx\fmtname\temp@str
+          plain \TeX!
+        \fi
+      \fi
+    \fi
+  \else
+    \JLaTeXe!
+  \fi
+\else
+  \pLaTeXe! 
+\fi
+\makeatother
+\end{document}
+\end{inputex}
+この方法を用いた場合は \pLaTeXe, \JLaTeXe, \pTeX, \JTeX, plain~\TeX の
+判定ができます。
+
+\section{文字列の積み重ね}
+\begin{inputex}
+\documentclass[11pt,papersize]{jsarticle}
+\makeatletter
+\def\stack{\@ifstar{\s@stack}{\bgroup\@stack}}
+\def\s@stack{\bgroup\scriptsize\@stack}
+\def\@stack#1{%
+   \ensuremath{%  
+      \left\{%  
+         \vcenter{%  
+            \@for\member:=#1\do{%  
+               \hbox{\member}%  
+            }%  
+         }%  
+      \right\}%  
+   }%  
+\egroup}
+\makeatother
+\begin{document}
+  
+\newcommand*\va[1]{\mbox{\mbox{$\langle$}\itshape#1\mbox{$\rangle$}}}
+\newcommand*\Vec[1]{\ensuremath{{#1}_1,{#1}_2,\ldots,{#1}_n}}
+The \verb|\stack| command's syntax: 
+\begin{quote}
+ \verb|\stack*|\verb|{|\Vec{\va{member}}\verb|}|  
+\end{quote}
+Star `*' makes the members in scriptsize.
+  
+\verb|The \stack{robust,fragile}-commands| shows below, 
+\begin{center}
+The \stack{robust,fragile}-commands.\par
+\end{center}
+  
+\verb|The \stack*{robust,fragile}-commands| shows below, 
+\begin{center}
+ The \stack*{robust,fragile}-commands.\par  
+\end{center}
+  
+\verb|Tom loves \stack*{Alice,Becky,Catherine,Mary,Stephanie}| 
+shows below,
+\begin{center}
+ Tom loves \stack*{Alice,Becky,Catherine,Mary,Stephanie}.  
+\end{center}
+  
+The \verb|\stack| command's source code is below.
+\begin{verbatim}
+\def\stack{\@ifstar{\s@stack}{\bgroup\@stack}}
+\def\s@stack{\bgroup\scriptsize\@stack}
+\def\@stack#1{%
+   \ensuremath{%  
+      \left\{%  
+         \vcenter{%  
+            \@for\member:=#1\do{%  
+               \hbox{\member}%  
+            }%  
+         }%  
+      \right\}%  
+   }%  
+\egroup}
+\end{verbatim}
+\end{document}
+\end{inputex}
+
+\section{MoeTeX logo}
+
+\begin{inputex}
+\DeclareRobustCommand*\MoeTeX{M\kern-.07em\lower.5ex\hbox{O}
+   \kern-.1667em\lower.5ex\hbox{E}\kern-0.1667em\TeX} 
+\end{inputex}
+
+\begin{OutText}
+\DeclareRobustCommand*\MoeTeX{M\kern-.07em\lower.5ex\hbox{O}
+   \kern-.1667em\lower.5ex\hbox{E}\kern-0.1667em\TeX}  
+\MoeTeX
+\end{OutText}
+
+
+\section{Thor\TeX Typo Wiki のロゴ}
+
+\begin{inputex}
+\documentclass[36pt,papersize]{jsarticle}
+\pagestyle{empty}
+\usepackage[T1]{fontenc}\usepackage{pxfonts}
+\begin{document}
+$w_ik_i\neq\omega_\iota \kappa_\iota$
+\end{document}
+\end{inputex}
+
+\begin{OutText}
+$$w_ik_i\neq\omega_\iota \kappa_\iota$$
+\end{OutText}
+
+\section{数値の基数変換}
+
+\subsection{10進数から2進数へ}
+
+\Cidx{dectobin}%
+\Cidx{@bin@list}%
+\Cidx{@whilenum}%
+\Cidx{edef}%
+\begin{inputex}
+\def\dectobin#1{%
+   \@tempcnta=#1\relax  \let\@bin@list=\@empty% ダミーノード
+   \ifnum \@tempcnta = \z@  
+      \edef\@bin@list{0}%
+   \else
+      \@whilenum \@tempcnta > \z@ \do{%
+         \ifodd \@tempcnta
+            \edef\@bin@list{1\@bin@list}%
+         \else
+            \edef\@bin@list{0\@bin@list}%
+         \fi
+         \divide \@tempcnta \tw@ % 2 で割る
+   }%
+   \fi
+   \@bin@list% 変換結果
+   \let\@bin@list=\@empty% リストを空にする
+} 
+\def\hoge#1{#1 $\rightarrow$ \dectobin{#1}, }
+\hoge{0} \hoge{1} \hoge{2} \hoge{19} \hoge{20} \hoge{43} \hoge{128}\par
+\end{inputex}
+
+\subsection{2進数から10進数へ}
+
+\Cidx{@dec@list}%
+\Cidx{@tfor}%
+\Cidx{@temp@char}%
+\Cidx{multiply}%
+\Cidx{number}%
+\begin{inputex}
+\def\bintodec#1{%
+   \let \@dec@list = \@empty% ダミーノードみたいなもん
+   \@tfor\@temp@char:=#1\do{\edef\@dec@list{\@temp@char\@dec@list}}%
+   \@tempcnta = \@ne \@tempcntb = \z@
+   \expandafter\@tfor\expandafter\@temp@char\expandafter:\expandafter=%
+   \@dec@list\do{%
+      \ifnum \@temp@char = \@ne \advance \@tempcntb \@tempcnta \fi
+      \multiply \@tempcnta \tw@
+   }%
+   \number\@tempcntb
+   \let \@dec@list = \@empty% リストを空にする
+}
+\def\hoge#1{#1 $\rightarrow$ \bintodec{#1}, }
+\hoge{0} \hoge{1} \hoge{10} \hoge{10011} \hoge{101011} \hoge{10000000}.\par
+\end{inputex}
+
+\subsection{ 8/16 進数から10進数}
+
+\begin{inputex}
+\def\hextodec#1{\@tempcnta="#1\relax \number\@tempcnta} %"
+\def\octtodec#1{\@tempcnta='#1\relax \number\@tempcnta}
+\hextodec{00FF}, \octtodec{177}
+\end{inputex}
+
+
+\section{``a. a and b. a, b and c.'' の自動出力}
+%（中級編に掲載予定）まずは、問題の一般化をしましょう。
+
+\begin{quote}
+1 \par
+1 and 2 \par
+1, 2 and 3 \par
+1, 2, 3 and 4. \par
+\vdots \par
+1, 2, 3,\ldots, $n-2$, $n-1$ and $n$
+\end{quote}
+
+しかし、\TeX 側からすれば、総数 $n$ がいくつあるのかと言うことが分かりま
+せんので、まずは 総数 $n$ を求めます。さらに問題となるのは、初めから $i$
+番目というのではなく、 終わりから $n - i$ 番目ということになります。ここ
+で、もう少し分かりやすいように問題を書き換えます。
+\begin{center}
+ \begin{tabular}{llllllll}
+  \hline
+  総数$\backslash$順番 & 
+   $n$ & $n-1$ & $n-2$ & $\cdots$ & $3$ & $2$ & $1$ \\
+  \hline
+  1      &    &    &    &         &        &           & 1   \\
+  2      &    &    &    &         &        & 1 and     & 2   \\
+  3      &    &    &    &         & 1,     & 2 and     & 3   \\
+  4      &    &    &    & 1,      & 2,     & 3 and     & 4   \\
+  \vdots &    &    &    &         &        &           &     \\
+  $n$    & 1, & 2, & 3, & \ldots, & $n-2$, & $n-1$ and & $n$ \\
+  \hline
+ \end{tabular}
+\end{center}
+すると最後から 1 番目は直接出力し、最後から2 番目は `$n-1$ and'とし、最
+後から 3 番目以降はカンマ付にする、ということになります。
+
+このように考えるとカウンタが一つ必要になりますし、リストのメンバー数を
+数える処理が必要になります。
+\begin{inputex}
+\makeatletter
+\def\and@for#1{%
+  \@tempcnta=\z@% ここでカウンタをクリア
+  \@for\member:=#1\do{\advance\@tempcnta\@ne}% メンバー数の計算
+  \@for\member:=#1\do{% 実際の処理
+    \ifnum\@tempcnta>2\relax% 3 以上ならばカンマ付
+      \member,\space
+    \else
+      \ifnum\@tempcnta=2\relax% 最後から二つ目ならば `\member~and'
+        \member \nobreakspace and\space
+      \else
+        \ifnum\@tempcnta=1\relax% 最後の一つなら直接出力
+          \member
+        \fi% \end{ifnum}
+      \fi% \end{ifnum}
+    \fi% \end{ifnum}
+    \advance\@tempcnta\m@ne% カウンタを一つ減少させる
+  }% \end{for}
+}
+\let\andfor\and@for
+\makeatother
+\end{inputex}
+
+このようにして作成したマクロを
+\begin{inputex}
+\andfor{\TeX}\par
+\andfor{\TeX,\LaTeX}\par
+\andfor{\TeX,\LaTeX,\LaTeXe}\par
+\andfor{Knuth,Lamport,Carlisle,Rahtz,Sc\"opf}\par
+\end{inputex}
+とした場合の出力は
+\begin{inputex}
+TeX
+TeX~and LaTeX 
+TeX, LaTeX~and LaTeX2e
+Knuth, Lamport, Carlisle, Rahtz~and Sc\"opf
+\end{inputex}
+となります（実際はカーニングと字上げ字下げが行なわれます）。
+
+色々と応用できそうな感じですよね、活用してみてください。
+
+
+\section{PDFアノテーション機能のメモアイコン位置}
+\begin{inputex}
+\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}} 
+\documentclass[papersize,dvipdfm]{jsarticle}
+\usepackage[bookmarks=false]{hyperref}
+% \pdfAnnote[<見出し>]{<内容>}
+\newcommand\pdfAnnote[2][]{\marginpar{\mbox{}%
+  \special{pdf: ann %width 4cm height 2.5cm %
+    << /Type /Annot /Subtype /Text /Open true /C [0 0 1] %
+    /T (\space#1) /Contents (#2) >>}}}
+% \pdfAnnoteXY{x,y}{<内容>} [単位: cm]
+\newcommand\pdfAnnoteXY[3][]{%
+   \setlength\unitlength{1truecm}%
+   \begin{picture}(0,0)%
+      \put(#2){
+       \special{pdf: ann %width 4cm height 3cm %
+          << /Type /Annot /Subtype /Text /Open true %
+          /C [0 0 1] /T (\space#1) /Contents (#3) >>}}%
+   \end{picture}}%
+\begin{document}
+日本国憲法\pdfAnnote[憲法]{第1章はGHQではなく、日本国が独自に
+盛り込んだもの。}において第9条で戦争の放棄が宣言されている。\par
+日本国憲法\pdfAnnote{第1章はGHQではなく、日本国が独自に
+盛り込んだもの。}において第9条で戦争の放棄が宣言されている。\par
+日本国憲法\pdfAnnoteXY[憲法]{0,5}{第1章はGHQではなく、日本国が独自に
+盛り込んだもの。}において第9条で戦争の放棄が宣言されている。\par
+日本国憲法\pdfAnnoteXY{1,5}{第1章はGHQではなく、日本国が独自に
+盛り込んだもの。}において第9条で戦争の放棄が宣言されている。
+\end{document}
+\end{inputex}
+
+柱に出力する方が面倒なので、傍注として出力した方が手っ取り早い気がします。
+
+\begin{inputex}
+\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}} 
+\documentclass[11pt,papersize]{jsbook}
+\makeatletter
+\newcounter{pdfnote}
+\newcommand*\pdfAnnote[2][]{%
+  \stepcounter{pdfnote}%
+  \mbox{${}^{*\thepdfnote}$}%
+  \marginpar{\mbox{}\special{pdf: ann %
+  << /Type /Annot /Subtype /Text /Open false /C [0 0 1] %
+  /T (*\thepdfnote\space#1) /Contents (#2) >>}}}
+\makeatother
+\begin{document}
+\tableofcontents
+\chapter{これから}
+ほげほげ\pdfAnnote[ほげほげ]{ここはよく見てね。}ほげほげ
+\chapter{それから}
+ほげほげ\pdfAnnote{げほげほ、げほげほ、げほげほ。}。
+\chapter{どれから}
+日本国憲法第 9 条\pdfAnnote{戦争を放棄する・陸海空一切の軍事力を持たない、
+という事がかかれている、}には云々。
+\clearpage
+日本国憲法第 9 条\pdfAnnote{戦争を放棄する・陸海空一切の軍事力を持たない、
+という事がかかれている、}には云々。
+\par
+日本国憲法第 9 条\pdfAnnote{戦争を放棄する・陸海空一切の軍事力を持たない、
+という事がかかれている、}には云々。
+\end{document}
+\end{inputex}
+
+忘れていましたが、pdfnote カウンタ は適当に chapter カウンタを親にした方
+がいいのかもしれません。
+\begin{inputex}
+\makeatletter
+\newcounter{pdfnote}[chapter]
+\renewcommand\thepdfnote{\@arabic\c@pdfnote}%
+   \@arabic\c@chapter.\@arabic\c@pdfnote
+\newcommand*\pdfAnnote[2][]{%
+   \stepcounter{pdfnote}%
+   \mbox{${}^{*\thepdfnote}$}%
+   \marginpar{\mbox{}\special{pdf: ann << 
+   /Type /Annot /Subtype /Text /Open  false /C [0 0 1] %
+   /T (*\@arabic\c@pdfnote\space#1) /Contents (#2) >>}}%
+}
+\makeatother
+\end{inputex}
+
+\section{hyperref において hyperlink が nest になる例}
+
+例えば、次のようにすると目次のリンクが nest になります。
+\begin{inputex}
+\documentclass[dvipdfm]{jsarticle}
+\usepackage{hyperref}
+\begin{document}
+\tableofcontents
+\section{図~\ref{figure}について}
+\clearpage
+\begin{figure}[p]
+ \caption{サンプル}\label{figure}
+\end{figure}
+\end{document}
+\end{inputex}
+
+
+\section{marginpar に table を}
+\begin{verbatim}
+>>28025
+次の例を吟味して下さい。
+\end{verbatim}
+
+\begin{inputex}
+\documentclass{jarticle}
+\usepackage{okumacro}
+\begin{document}
+{\LaTeX}において傍注(\texttt{\yen marginpar})は浮動体。
+table環境もfigure環境も浮動体。浮動体の
+中(\texttt{\yen marginpar})に浮動体(table)を入れられても
+困るでしょう。\vskip2em
+次のように浮動体にしない表環境を新設します。
+これは傍注用に使うようにすれば良いでしょう。
+\makeatletter
+\newenvironment{margintable}%
+   {\vbox\bgroup\centering\def\@captype{table}}%
+   {\egroup}
+\makeatother
+使い方は以下のようになります。\vskip2em
+{\LaTeX}の変遷については表~\ref{tab:hoge}\marginpar{%
+   \begin{margintable} \centering
+     \caption{ほげ\label{tab:hoge}}
+    \begin{tabular}{|c|}
+     \hline\LaTeX2.09\\\LaTeXe\\\LaTeX3\\\hline
+    \end{tabular}
+   \end{margintable}}を見てね。\vskip2em
+普通の表（表~\ref{tab:ara}）も次のようになります。
+\begin{table}[htpb] \centering
+ \caption{普通の表\label{tab:ara}}
+ \begin{tabular}{|ccc|} 
+\hline  ほげ& げほ& どれ\\\hline
+ \end{tabular}
+\end{table}
+\vskip2em
+傍注の表~\ref{tab:geho}\marginpar{%
+   \begin{margintable} \centering
+     \caption{げほ\label{tab:geho}}
+    \begin{tabular}{|c|}
+     \hline\TeX\\\LaTeX\\何か\\\hline
+    \end{tabular}
+   \end{margintable}}%
+はどこに旅立つかは分かりませんけどね。
+\end{document}
+\end{inputex}
+

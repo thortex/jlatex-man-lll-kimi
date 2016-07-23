@@ -1,0 +1,1891 @@
+\chapter{マクロ作成の基礎知識}
+
+ \section{リスト処理}
+
+
+
+\section{リスト処理 (簡略化バージョン)}
+あらかじめコントロールシークエンス \cmd{hoge} にすでに
+整数値のリストが $\{a_1, a_2, \ldots, a_n\}$ が格納されている事を前提とする。
+\begin{inputex}
+\documentclass{jarticle}
+\makeatletter
+% リスト #1 が空かどうかを判定する
+\def\list@empty#1{}
+% リスト #1 の先頭に #2 を追加する
+\def\list@push#1#2{\edef#1{#2,#1}}
+% リスト #1 の末尾に #2 を追加する
+\def\list@append#1#2{\edef#1{#1,#2}}
+% リスト #1 の先頭から要素を一つ取り除く
+\def\list@pop#1{%
+   \@tempcnta=\z@
+   \let\list@save@list\@empty
+   \@for\member:=#1\do{%
+      \ifnum\@tempcnta=\z@
+         \member
+      \else
+        \ifnum\@tempcnta=\@ne
+           \edef\list@save@list{\member}
+        \else
+           \edef\list@save@list{\list@save@list,\member}%
+        \fi
+      \fi
+      \advance\@tempcnta\@ne
+   }%
+   \edef#1{\list@save@list}%
+}
+% リスト #1 のサイズを求める
+\def\list@size#1{%
+   \@tempcnta=\z@
+   \@for\member:=#1\do{\advance\@tempcnta\@ne}%
+   \number\@tempcnta
+}
+% リスト #1 を逆順に並び替える
+\def\list@reverse#1{%
+   \@tempcnta=\z@
+   \let\list@save@list\@empty
+   \@for\member:=#1\do{%
+      \ifnum\@tempcnta=\z@
+         \edef\list@save@list{\member}%
+      \else
+         \edef\list@save@list{\member,\list@save@list}%
+      \fi
+     \advance\@tempcnta\@ne
+   }%
+   \edef#1{\list@save@list}%
+}
+% リスト #1 の直和を表示する
+\def\list@sum#1{%
+   \@tempcnta=\z@
+   \@for\member:=#1\do{%
+      \advance \@tempcnta \member
+   }%
+   \number\@tempcnta
+}
+% リスト #1 の直積を表示する
+\def\list@prod#1{%
+   \@tempcnta=\@ne
+   \@for\member:=#1\do{%
+      \multiply \@tempcnta \member
+   }%
+   \number\@tempcnta
+}
+% リストの要素を表示する
+\def\list@show{\@ifnextchar[{\@list@show}{\@list@show[\@empty]}}
+% 書式 #1 付で リスト #2 を表示する
+\def\@list@show[#1]#2{%
+   \@tempcnta=\z@
+   \@for\member:=#2\do{\advance\@tempcnta\@ne}%
+   \@for\member:=#2\do{%
+      \ifnum\@tempcnta>\@ne
+         \member#1
+      \else
+         \member
+      \fi
+      \advance\@tempcnta\m@ne
+   }%
+}
+\makeatother
+\begin{document}
+\makeatletter
+\def\hoge{9,10,5,7,10,100}
+\list@show[,]{\hoge}\par
+\list@append{\hoge}{4}
+\list@show[,]{\hoge}\par
+\list@push{\hoge}{8}
+\list@push{\hoge}{27}
+\list@show[,]{\hoge}\par
+ポップ：\list@pop{\hoge}\par
+\list@show[,]{\hoge}\par
+逆順：\list@reverse{\hoge}
+\list@show[,]{\hoge}\par
+直和：\list@sum{\hoge}\par
+直積：\list@prod{\hoge}\par
+\makeatother
+\end{document}
+\end{inputex}
+
+
+例えば、あるマクロ \cmd{List} の先頭・末尾にメンバーを追加したい、という
+場合は
+\begin{inputex}
+\let\List\empty% リスト処理のためのダミーノードに相当する
+\def\appendList#1{\def\List{\List#1}}
+\def\pushList#1{\def\List{#1\List}}
+\appendList{hoge}
+\appendList{,foo}
+\appendList{,bar}
+\pushList{hoge,}
+\List
+\end{inputex}
+というのは無限ループでエラーになる。\cmd{List} というマクロを
+定義するために自分自身を参照しているためである。ここで \C{edef}
+という定義中のマクロを展開するプリミティブが存在する。
+これを使えば次のように記述できる。
+\begin{inputex}
+\let\List\empty% リスト処理のためのダミーノードに相当する
+\def\appendList#1{\edef\List{\List#1}}
+\def\pushList#1{\edef\List{#1\List}}
+\appendList{hoge}
+\appendList{,foo}
+\appendList{,bar}
+\pushList{hoge,}
+\List
+\end{inputex}
+\cmd{List} の出力は hoge,hoge,foo,bar となっていることから、\cmd{List} を
+再定義する前に \C{edef} は前回の \cmd{List} を展開していることが分かる。
+
+
+  \subsection{文字処理}
+  \subsection{文字列処理}
+%  \subsection{並び替え}
+ \section{展開と置換}
+  \subsection{展開順序}
+  \subsection{展開の抑制}  
+  \subsection{閑話休題}
+ \section{グルーピング}
+  \subsection{局所}
+  \subsection{大域}
+  \subsection{グループの区切り}
+  \subsection{入れ子}
+  \subsection{波括弧の重み}  
+
+ \section{モード}
+
+%\section{モードのあれこれ}
+%それぞれのモードを図解する、そのうち
+
+\indindz{モード}{垂直}%
+\indindz{モード}{内部垂直}%
+\indindz{モード}{水平}%
+\indindz{モード}{限定水平}%
+\indindz{モード}{数式}%
+\indindz{モード}{ディスプレイ数式}%
+\begin{description}
+ \item[{垂直モード}] ページを組むとき等。
+ \item[{内部垂直モード}] \C{vbox} などの中。
+ \item[{水平モード}] 途中改行を許して行を組む。
+ \item[{限定水平モード}] \C{hbox} などの中で途中改行を許さない。
+ \item[{数式モード}] 行中に組む数式。
+ \item[{ディスプレイ数式モード}] 別行に組む数式。
+\end{description}
+
+%\subsection{モードの遷移}
+法則を以下にまとめる。
+\begin{enumerate}
+ \item 垂直モードのとき、単なる文字列を見つけると水平モードに移行する。
+ \item 垂直モードのとき、特殊な命令によって水平モードに移行する
+       （たとえば \C{indent} や \C{leavevmode} など）。
+ \item 垂直モードのとき、\C{hbox} を見つけると限定水平モードに移行する。
+ \item ...
+\end{enumerate}
+%これを状態遷移図として、そのうち\ldots
+
+
+  \subsection{水平}
+
+  \subsection{垂直}
+
+  \subsection{内部/限定}
+
+  \subsection{ボックスの内容}
+
+\begin{Syntax}
+\C{ifvoid}\va{数値} \pp{なんにもないのか}\\
+\C{ifhbox}\va{数値} \pp{水平ボックスを含むのか}\\
+\C{ifvbox}\va{数値} \pp{垂直ボックスを含むのか}
+\end{Syntax}
+
+  \subsection{モードのあれこれ}
+
+\begin{Syntax}
+\C{ifvmode} \pp{垂直モードの判定}\\
+\C{ifhmode} \pp{水平モードの判定}\\
+\C{ifmmode} \pp{数式モードの判定}\\
+\C{ifinner} \pp{内部モードの判定}
+\end{Syntax}
+
+この \C{voidb@x} を使って\Z{垂直モード}から\Z{水平モード}に移行
+するコマンド \C{leavevmode} が作られます。%
+\Cidx{unhbox}%
+\begin{inputex}
+\def\leavevmode{\unhbox\voidb@x}
+\end{inputex}
+%\C{set@fontsize} によって使われる 
+\C{strutbox} が次のように
+定義されています。数式モードでも使われる。
+\Cidx{strut}%
+\Cidx{ifmmode}%
+\Cidx{strutbox}%
+\Cidx{unhcopy}%
+\begin{inputex}
+\newbox\strutbox
+\def\strut{\relax\ifmmode\copy\strutbox\else\unhcopy\strutbox\fi} 
+\end{inputex}
+
+
+\subsection{\texttt{\bs framebox}実装への道 その1}
+さてさて、\LaTeX では \C{framebox} などに見られるような、LR 要素の四方を
+線で囲み、枠を付けるコマンド \C{framebox}/\C{fbox} が用意されています。
+これを \TeX のマクロのみで実装する方法を考えましょう。まずは考え方です。
+次の図を御覧だくさい。二通りのアプローチがあります。
+\begin{center}
+\def\cmd#1{\bgroup\ttfamily\string#1\egroup}
+\def\pa#1{$\left\{\mbox{}\mbox{#1}\mbox{}\right\}$}
+\hbox{%
+  \cmd{\vbox}\pa{$\vcenter{%
+     \hbox to 14zw{\hrulefill\ \cmd{\hrule}\ \hrulefill}%
+     \hbox to 14zw{\hfil\cmd{\hbox}\pa{\hbox{%
+       \ \vrule\ {{\cmd{\vbox}\pa{文章要素}}}\ \vrule\ }}\hfil}%
+     \hbox to 14zw{\hrulefill\ \cmd{\hrule}\ \hrulefill}%
+  }$%
+}}
+ \hbox{%
+  \cmd{\hbox}\pa{$\vcenter{\hbox{%
+   \vrule \hskip 1ex
+   \vbox{%
+      \hbox to 10zw{\hrulefill\ \cmd{\hrule}\ \hrulefill}%
+      \hbox to 10zw{\hfil \cmd{\hbox}\pa{文章要素}\hfil }%
+      \hbox to 10zw{\hrulefill\ \cmd{\hrule}\ \hrulefill}%
+   }%
+   \hskip 1ex \vrule
+  }}$%
+}}
+\end{center}
+
+さて、このような考え方に基づくと、次のような構成になります。
+\begin{inputex}
+\vbox{%
+   \hrule%
+   \hbox{\vrule\hbox{\pa{文章要素}}\vrule}%
+   \hrule%
+}
+\end{inputex}
+ここで、文章要素と枠とを離れさせるための間隔 \C{myboxsep} を導入します。
+初期値は適当に 3\,pt ということにしておきます。
+\begin{inputex}
+\newlength{\myboxsep}
+\setlength\myboxsep{3pt}
+\end{inputex}
+このようにして、
+\begin{inputex}
+\ifvmode \leavevmode \fi\vbox{%
+   \hrule
+   \par\vskip \myboxsep
+   \hbox{\vrule \hskip \myboxsep \pa{文章要素}\hskip \myboxsep \vrule}%
+   \par\vskip \myboxsep
+   \hrule
+}
+\end{inputex}
+縦の罫線を先に引く方法ではちょっと考え辛いので、
+横の罫線を先に引く場合で考えてみます。
+\begin{inputex}
+\ifvmode \leavevmode \fi
+\hbox{%
+   \vrule
+   \vbox{%
+      \hrule 
+      \par \vskip \myboxsep
+      \hbox{\hskip \myboxsep\cmd{\hbox}{\pa{文章要素}\hskip \myboxsep}%
+      \par \vskip \myboxsep
+      \hrule 
+   }%
+   \vrule
+}
+\end{inputex}
+上記のようにすると、見事に \C{myboxsep} が生きています。
+さらに、続いて枠の太さを決める \C{myboxrule} も導入します。 
+\begin{inputex}
+\newlength{\myboxrule}
+\setlength\myboxrule{3pt}
+\end{inputex}
+初期値は適当に 3\,pt にでもしておきます。
+すると次のように \C{myframebox} が定義できます。
+\begin{inputex}
+\def\myframebox#1{\ifvmode \leavevmode \fi
+ \hbox{%
+   \vrule width \myboxrule
+   \vbox{%
+      \hrule height \myboxrule
+      \par \vskip \myboxsep
+      \hbox{\hskip \myboxsep #1\hskip \myboxsep}%
+      \par \vskip \myboxsep
+      \hrule height \myboxrule
+   }%
+   \vrule width \myboxrule
+ }%
+}
+\end{inputex}
+単に \C{vrule} には幅 (width) を、\C{hrule} には高さ (height) を指定するだけです。
+また、次のようにして枠がぴったりとくっつく \C{myfbox} も作ることが出来ます。
+\begin{inputex}
+\def\myfbox#1{%
+ \begingroup
+   \setlength\myboxsep{0pt}%
+   \myframebox{#1}%
+ \endgroup
+}
+\end{inputex}
+使用例は次のようになります。
+\begin{inputex}
+\myframebox{文章要素}, \myfbox{文章要素}, \myframebox{文章要素}\par
+\myboxrule=.4pt \myfbox{文章要素}
+\end{inputex}
+
+さて、本来 \C{framebox} は
+\begin{Syntax}
+\C{framebox}\opa{幅}\opa{位置指定子}\pa{文章要素}
+\end{Syntax}
+のような使い方が出来るのでまだ不十分ですが、今日はこのへんで
+終わりにしましょう (眠いのでもう寝ます)。
+
+
+
+\clearpage
+
+ \section{カウンタ}
+  \subsection{\TeX のカウンタ}
+  \subsection{\LaTeX のカウンタ}
+  \subsection{親子カウンタ}
+  \subsection{相互参照}  
+
+\clearpage
+
+ \section{ボックス・グルー}
+
+%  \subsection{寸法}
+
+  \subsection{グルー}
+
+  \subsection{罫線}
+\C{hrule} は垂直モード、 \C{vrule} は水平モードで組まれる事に
+なります。水平モードで \C{hrule} を使うと、その時点で水平モードを
+終了し垂直モードに移行します。
+\begin{InOut}
+水平線を文中に引こうと\verb|\hrule|を
+使おうとしたら \hrule 全然うまく逝きま
+せん．逆に\verb|\vrule|の方が{\vrule 
+width 10pt}良いです．なぜですか？
+\end{InOut}
+
+  \subsection{リーダ}
+
+
+\begin{inputex}
+% 垂直モードで \hrulefill が呼び出されたときのために \leavevmode
+% \E{tabular}/\E{array} 環境で使われたときのために \kern\z@
+\def\hrulefill{\leavevmode\leaders\hrule\hfill\kern\z@} 
+\def\dotfill{\leavevmode\cleaders\hb@xt@.44em{\hss.\hss}\hfill\kern\z@}
+\end{inputex}
+
+  \subsection{ボックスの仕組み}
+
+\begin{Syntax}
+\C{hbox}\pa{要素}\pp{限定水平モード}\\
+\C{vbox}\pa{要素}\pp{内部垂直モード}
+\end{Syntax}
+\cmd{hbox}は限定水平モードなので\va{要素}を水平方向に並べようとしますが途中
+で改行できません．\cmd{vbox}は垂直モードですから，\va{要素}を垂直方向に並べ
+ようとします．
+\begin{InOut}
+\hbox{\hbox{ほげ}\hbox{ほげ}\hbox{ほげ}} 
+\vbox{\hbox{ほげ}\hbox{ほげ}\hbox{ほげ}}
+\vbox{\leavevmode\hbox{ほげ}\hbox{ほげ}%
+ \hbox{ほげ}}
+\end{InOut}
+
+\begin{InOut}
+\newcommand{\tete}{\hbox{ほげ}
+ \hbox{ほげ}\hbox{ほげ}}
+\ldots\vbox{\hrule\tete\hrule}
+\ldots$\vcenter{\hrule\tete\hrule}$
+\ldots\vtop{\hrule\tete\hrule}\ldots
+\end{InOut}
+
+このことから{\LaTeX}の\C{fbox}命令は
+\begin{inputex}
+\vbox{ \hrule
+       \hbox{\vrule\relax{これ}\vrule}%
+       \hrule}%
+\end{inputex}
+と同じようなことを行っていると考えられるでしょう．
+\begin{InOut}
+{\fboxsep=0pt \fbox{こちら}}は多分 \TeX の
+\verb|\hrule|，\verb|\vrule|，\verb|\vbox|，
+\verb|\hbox|を次のようにしていると考えられ
+ます．さっきのは
+\vbox{\hrule \hbox{\vrule \relax こちら%
+  \vrule}\hrule}
+\end{InOut}
+しかし少し考えてみれば{\LaTeX}では\C{fbox}を
+作成するときに\C{fboxsep}と\C{fboxrule}によって
+罫線の太さと文字列との間隔を調整できます．
+もう少し工夫した定義が必要なのはお分かりだと思います．
+
+
+ \section{ファイル}\label{sec:file}
+  \subsection{補助ファイルの役割}  
+  \subsection{ファイル入力}
+
+\begin{Syntax}
+ \C{newread}\pa{レジスタ名}
+\end{Syntax}
+
+  \subsection{ファイル出力}
+
+\begin{Syntax}
+ \C{newwrite}\pa{レジスタ名}
+\end{Syntax}
+
+
+  \subsection{ファイルに関わるその他のコマンド}
+
+あるファイル \Va{file}{tex} をタイプセットするときに、
+ページを組む前に \Va{file}{aux} を読み込まなければ
+なりませんので \C{document} 命令で \Va{file}{aux} を
+読み込むように定義されています。
+\begin{Syntax}
+\C{document} \pp{本文の始めに一度だけ記述する} \\
+\C{nofiles}  \pp{ファイルの書き出しをすべて無効にする}
+\end{Syntax}
+書籍等を作成していて、もうそれ以上ファイルに変更を
+加えないことが分かっているときに、目次ファイル \Va{file}{toc}など
+を固定するとき等に \C{nofiles} が使えます。
+
+
+%\subsubsection{読み込まれているファイルを確認する}
+現在タイプセットしているファイルで使用されているファイル（プリロードも含
+む）を調べるには \C{listfiles} 命令を使います。
+
+\LaTeX 処理を実行した原稿のプリアンブルに
+\begin{Syntax}
+\cmd{listfiles}
+\end{Syntax}
+という \C{listfiles} 命令を記述すれば，自分が処理している原稿に
+何のファイルが使用されているのかを端末と \Va{filename}{log} に書
+き出します．例えば
+\begin{inputex}
+\documentclass{jbook}
+\listfiles
+\begin{document} hoge \end{document}
+\end{inputex}
+のようなファイル\Va{filename}{tex}が存在し，\prog{platex}など
+でタイプセットすれば
+\begin{OutTerm}
+This is pTeX  Version 3.141592-p3.1.2 (sjis)(Web2C 7.5.2) 
+ *File List*
+  pldefs.ltx    2000/07/13 v1.2 pLaTeX Kernel
+   jy1mc.fd    1997/01/24 v1.3 KANJI font defines
+   jy1gt.fd    1997/01/24 v1.3 KANJI font defines
+ kinsoku.tex
+ plpatch.ltx
+   jbook.cls    2001/10/04 v1.3 Standard pLaTeX class
+   jbk10.clo    2001/10/04 v1.3 Standard pLaTeX file
+ ***********
+Output written on filename.dvi (1 page，216 bytes).
+Transcript written on filename.log.
+\end{OutTerm}
+のような表示が出るでしょう．ここで少し疑問に思っていただきたい
+ことは，\yo{原稿には\D{jbook}を使うことしか宣言していないのに
+何か別のファイルも一緒に読み込まれている．}ということです．
+このように{\LaTeX}プログラムを実行した段階ですでに読み込まれている
+ファイルを\emph{\Z{preload file}}と呼びます．
+
+%\paragraph{ファイル出力}
+一つの配布ファイル \fl{hoge.tex} から、別のファイルに出力
+したいときは \C{filecontents} 命令を使います。コメントを
+つけてほしくないときは \C{filecontents*} を使います。
+\begin{inputex}
+\begin{filecontents}{hoge.txt}
+私はこれから山に芝刈りに行きます。
+\end{filecontents}
+\documentclass{jsarticle}
+\begin{document}
+\section{芝刈り}
+\input{hoge}
+\section{2度目の芝刈り}
+\input{hoge}
+\end{document}
+\end{inputex}
+%もちろん先程の \C{nofiles} を指定しまうと、これが油宇高になりません。
+
+
+
+\begin{Syntax}
+\C{IfFileExists}\pa{ファイル名}\pa{真の時}\pa{偽の時} \\
+\C{InputIfFileExists}\pa{ファイル名}\pa{真の時}\pa{偽の時} 
+\end{Syntax}
+
+
+ \section{エラー}
+  \subsection{\TeX のエラー}
+  \subsection{\LaTeX のエラー}
+  \subsection{\TeX の警告}
+  \subsection{\LaTeX の警告}
+  
+  \subsection{エラーの出し方}
+
+\begin{Syntax}
+\C{GenericInfo}\pa{}\pa{ログファイルへ書き出す内容}
+\end{Syntax}
+
+\begin{inputex}
+\makeatletter
+% \jobname.log にしか書き出さない
+\GenericInfo{hoge:}{%
+  だめだめだめ!\MessageBreak 
+  買うな!\MessageBreak 
+  あんたにはまだ早い!}
+
+あふぉ。\par
+% \jobname.log に書き出しターミナルにも表示する
+\GenericWarning{geho:}{だめだぞぉそんなことしたらぁ、先生
+こまっちゃうなぁ、どうしてもぉ? あはははは。どーんな問題。}
+ \end{inputex}
+
+%\GenericError{gege:}{}{}{}
+
+\C{PackageWarning}{package}\pa{警告}
+ 入力ファイルの行数を表示しない NoLine
+\C{PackageWarningNoLine}\pa{パッケージ}\pa{警告}
+\C{PackageError}\pa{パッケージ}\pa{エラー内容}\pa{ヘルプ}
+\C{PackageInfo}\pa{パッケージ}\pa{情報}
+
+\C{ClassWarning}
+\C{ClassWarningNoLine}
+\C{ClassError}
+\C{ClassInfo}
+
+
+\C{@latex@error}\pa{エラー内容}\pa{ヘルプ}
+\C{@latex@warning}\pa{警告}
+\C{@latex@warning@no@line}\pa{警告}
+\C{@latex@info}\pa{情報}
+\C{@latex@info@no@line}\pa{情報}
+
+時折マクロ・クラスの中で \C{@warning} などを見掛けますが、
+これは \C{@latex@warning} と同じものです。
+\begin{inputex}
+\let\@warning\@latex@warning
+\let\@@warning\@latex@warning@no@line
+\global\let\@latexerr\@latex@error
+\end{inputex}
+
+\makeatother
+
+  
+  \subsection{脆弱・頑丈}
+
+\clearpage
+
+ \section{フォント}  
+  \subsection{NFSS}
+  \subsection{基本属性}
+  \subsection{数式モードでのフォント}
+  \subsection{フォントの定義}
+ \section{クラスファイルの構築}
+  \subsection{もっとも短いクラス}
+  \subsection{ちょっと長いクラス}
+  \subsection{さらにちょっと長いクラス}  
+  \subsection{版面}
+  \subsection{柱・ノンブル}  
+  \subsection{表題}
+
+\clearpage
+
+  \subsection{見出し}  
+
+   \subsubsection{章節見出し}
+
+   \subsubsection{見出し番号}
+
+   \subsubsection{見出しのカスタマイズ}
+
+\begin{Syntax}
+\C{@startsection}%
+ \pa{カウンタ名}%
+ \pa{深さ}%
+ \pa{字下げ幅}%
+ \pa{前空き}%
+ \pa{後空き}%
+ \pa{体裁}%
+\end{Syntax}
+最後の \va{体裁}には書体変更・サイズ変更用のコマンド (\C{reset@font}, \C{Large}, 
+\C{sffamily}, \C{MakeUppercase}) や揃えを行なうコマンド (\C{centering}, 
+\C{raggedrigth}, \C{raggedleft}) が使えます。
+\pa{後空き}が 0 より小さければ「\Z{文中見出し}」として \C{paragraph} 
+などのように見出し語の直後に改行できないようにします。
+
+通常は次のような \cmd{hoge} 命令を定義するには \C{@ifstar} と
+\C{@ifnextchar} を使うことになります。
+\begin{inputex}
+\documentclass[a4j,11pt,papersize]{jsarticle}
+\makeatletter
+\def\hoge{\@ifstar {\@hoge}{\@hoge}}
+\def\@hoge{\@ifnextchar[{\@@hoge}{\@@hoge[\@empty]}}
+\def\@@hoge[#1]#2{任意引数は`#1', 必須引数は`#2'}
+\makeatother
+\begin{document}
+\hoge{ひ}\par
+\hoge*{ひ}\par
+\hoge[に]{ひ}\par
+\hoge*[に]{ひ}\par
+\end{document}
+\end{inputex}
+しかし、毎回これをやっていては付かれるので見出しに関しては \C{secdef} なる
+コマンドが用意されています。また、 星付き `*' の場合は目次に書き出さないと
+いう暗黙の了解があるので、
+\begin{inputex}
+\hoge*[に]{ひ}
+\end{inputex}
+というパターンは許容しません。ですから
+\begin{inputex}
+\documentclass[a4j,11pt,papersize]{jsarticle}
+\makeatletter
+\def\hoge{\secdef {\@hoge}{\star@hoge}}
+% 任意引数が与えられていないときは自動的に 必須引数が渡される
+%    \@ifnextchar[{\@hoge}{\one@hoge}
+%    \def\one@hoge#1{\@hoge[#1]{#2}}
+% と同じこと。
+\def\@hoge[#1]#2{任意引数は`#1', 必須引数は`#2'}
+\def\star@hoge#1{星付で必須引数は`#1'}
+\makeatother
+\begin{document}
+\hoge{目次にも出力される見出し}\par
+\hoge*{目次には出力されない見出し}\par
+\hoge[目次用のテキスト]{見出し用の長いやつ}\par
+\end{document}
+\end{inputex}
+という例があれば、
+\begin{OutText}
+任意引数は`目次にも出力される見出し', 必須引数は`目次にも出力される見出し'
+星付で必須引数は`目次には出力されない見出し'
+任意引数は`目次用のテキスト', 必須引数は`見出し用の長いやつ'
+\end{OutText}
+という出力になります。
+
+  \subsection{図表}
+  \subsection{目次}  
+
+   \subsubsection{目次の機構}
+   %\section{目次情報の出力}
+\begin{Syntax}
+\C{addtocontents}\pa{拡張子}\pa{追加する内容} \\
+\C{addcontentsline}\pa{拡張子}\pa{種類}\pa{追加する内容}
+\end{Syntax}
+から
+\begin{inputex}
+\@writefile{toc}{\contentsline{chapter}{\numberline{第1章}{\TeX}の基礎}{1}}
+\end{inputex}
+が \Va{file}{aux} に書き出されて、これから \Va{file}{toc} に
+\begin{inputex}
+\contentsline {chapter} {\numberline{第1章}{\TeX}の基礎} {1}
+\end{inputex}
+
+借りに 次のような \Va{file}{tex} を用意して 2 回程タイプセットを行なえば
+\begin{inputex}
+\documentclass[a4j,11pt,papersize]{jsarticle}
+\begin{document}
+\tableofcontents
+\listoffigures
+\listoftables
+\section{ほげ}
+\subsection{どれ}
+\subsubsection{ほれ}
+\paragraph{ありゃ}
+\subparagraph{こりゃ}
+\begin{table}[htbp]
+ \caption{ほげ}
+\end{table}
+\begin{figure}[htbp]
+ \caption{どれ}
+\end{figure}
+\end{document}
+\end{inputex}
+
+それぞれ \Va{file}{toc} では
+\begin{inputex}
+\contentsline {section}{\numberline {1}ほげ}{1}
+\contentsline {subsection}{\numberline {1.1}どれ}{1}
+\contentsline {subsubsection}{\numberline {1.1.1}ほれ}{1}
+\contentsline {paragraph}{ありゃ}{1}
+\contentsline {subparagraph}{こりゃ}{1}
+\end{inputex}
+さらに \Va{file}{lof} では
+\begin{inputex}
+\contentsline {figure}{\numberline {1}{\ignorespaces どれ}}{1}
+\end{inputex}
+ついでに \Va{file}{lot} では
+\begin{inputex}
+\contentsline {table}{\numberline {1}{\ignorespaces ほげ}}{1}
+\end{inputex}
+極めつけに \Va{file}{aux} では
+\begin{inputex}
+\relax
+\@writefile{toc}{\contentsline{section}{\numberline
+  {1}ほげ}{1}}
+\@writefile{toc}{\contentsline{subsection}{\numberline
+  {1.1}どれ}{1}}
+\@writefile{toc}{\contentsline{subsubsection}{\numberline
+  {1.1.1}ほれ}{1}}
+\@writefile{toc}{\contentsline{paragraph}{ありゃ}{1}}
+\@writefile{lot}{\contentsline{table}{\numberline
+  {1}{\ignorespaces ほげ}}{1}}
+\@writefile{lof}{\contentsline{figure}{\numberline
+  {1}{\ignorespaces どれ}}{1}}
+\@writefile{toc}{\contentsline{subparagraph}{こりゃ}{1}}
+\end{inputex}
+
+\begin{minicolumn}{ある範囲の見出しを目次に出力したくない}
+\C{addcontentsline} と \C{addtocontents} を無効化すれば良いので
+\begin{inputex}
+\documentclass{book}
+\begin{document}
+\tableofcontents
+\begingroup % ここから見出しを目次に出したくない
+\def\addcontentsline#1#2#3{}% \@gobble \@gobbletwo
+\def\addtocontents#1#2{}% \let\addcontents \@gobbletwo
+\chapter{ほげ}
+ほげほげほげ。
+\section{ほえ}
+ほえほえほえ。
+\endgroup% ここまで見出しを目次に出したくない
+\chapter{うりゃ}
+うりゃうりゃうりゃ。
+\end{document}
+\end{inputex}
+\end{minicolumn}
+
+
+   \subsubsection{目次の体裁}
+\begin{inputex}
+\@dottedtocline{<>}{<>}{<>}{<>}{<>}
+\@pnumwidth
+\@tocrmarg
+\@dotsep
+\l@<なんとか>
+\end{inputex}
+
+
+
+  \subsection{文献一覧・索引・用語集}
+
+ \section{空白}  
+  \subsection{自動で入る空白}
+  \subsection{手動で入れる空白}  
+
+\begin{Syntax}
+\C{nopagebreak}\opa{0--4} \pp{改ページを抑制する}\\
+\C{pagebreak}\opa{0--4} \pp{改ページを助長する}\\
+\C{nolinebreak}\opa{0--4} \pp{改行を抑制する}\\
+\C{linebreak}\opa{0--4} \pp{改行を助長する}
+\end{Syntax}
+
+\Cidx{nobreak}%
+改行を許さないスペースにチルダ \string~ があります、
+これと同じコマンドが \C{nobreakspace} として使用できます。
+\begin{inputex}
+\DeclareRobustCommand{\nobreakspace}{%
+  \leavevmode\nobreak\ }
+\catcode`\~=13
+\def~{\nobreakspace{}}
+\expandafter\let\expandafter\@xobeysp\csname nobreakspace \endcsname
+\end{inputex}
+\C{@xobeysp} は \C{obeyspaces} などにより空白文字を無視せずに
+一つのスペースとして扱うときにそれを \C{nobreakspace} にするための
+設定です。
+
+
+
+
+  \subsection{スペースファクタ}
+ \section{出力ルーチン・ページの構成法}  
+  \subsection{出力}
+  \subsection{マークの基本}  
+  \subsection{output}
+ \section{ページ構成}  
+  \subsection{パラメータ}
+
+\begin{inputex}
+\pretolerance=100
+\tolerance=200
+\hbadness=1000
+\vbadness=1000
+\linepenalty=10
+\hyphenpenalty=50
+\exhyphenpenalty=50
+\binoppenelty=500
+\clubpenalty=150
+\windowpenalty=150
+\displaywindowpenalty=50
+\brokenpenalty=100
+\predisplaypenalty=10000
+%\postdisplaypenalty=0
+%\interlinepenalty=0
+%\floatingenalty=0
+%\outputpenalty=0
+\doublehyphendemerites=10000
+\finalhyphendemerites=5000
+\adjdemerits=10000
+%\looseness=0% , cleared by \TeX after each paragraph
+%\pausing=0
+%\holdinginserts=0
+%\tracingonline=0
+%\tracingmacros=0
+%\tracingstats=0
+%\tracingparagraphs=0
+%\tracingpages=0
+%\tracingoutput=0
+\tracinglostchars=1
+%\tracingcommands=0
+%\tracingrestores=0
+%\language=0
+\uchyph=1
+\end{inputex}
+
+\begin{Syntax}
+\C{showoutput}\va{整数}\\
+\C{tracingall}\\
+\C{tracingcommands}\va{整数}\\
+\C{tracingstats}\va{整数}\\
+\C{tracingpages}\va{整数}\\
+\C{tracinglostchars}\va{整数}\\
+\C{tracingmacros}\va{整数}\\
+\C{tracingparagraphs}\va{整数}\\
+\C{tracingrestores}\va{整数}
+\end{Syntax}
+
+\C{tracingall} は全ての処理状況を表示するためのマクロ。
+\begin{inputex}
+\gdef\tracingall{%
+  \tracingcommands\tw@
+  \tracingstats\tw@ 
+  \tracingpages\@ne
+  \tracinglostchars\@ne
+  \tracingmacros\tw@
+  \tracingparagraphs\@ne
+  \tracingrestores\@ne 
+  \errorcontextlines \maxdimen
+  \showoutput}
+\def\tracingall{\@autoerr\tracingall}
+\end{inputex}
+
+
+\paragraph{エラー出力}
+プリアンブルに
+\begin{inputex}
+ \setcounter{errorcontextlines}{1}
+\end{inputex}
+によってエラーの出力される量を調整することができます。
+標準は $-1$ です。
+
+
+\begin{inputex}
+\parindent=20pt
+\hangindent=0pt
+\hoffset=0pt
+\voffset=0pt
+\parskip=0pt plus 1pt
+\adovedisplayskip=12pt plus 3pt minus 9pt
+\adovedisplayshortskip=0pt plus 3pt
+\belowdisplayskip=12pt plus 3pt minus 9pt 
+\belowdisplayshortskip=7pt plus 3pt minus 4pt
+%\leftskip=0pt
+%\rightskip=0pt
+\topskip=10pt
+\splittopskip=10pt
+%\tabskip=0pt
+%\spaceskip=0pt
+%\xspaceskip=0pt
+\parfillskip=0pt plus 1fil
+\end{inputex}
+
+\begin{inputex}
+\newskip\normalbaselineskip  \normalbaselineskip=12pt
+\newskip\normallineskip \normallineskip=1pt
+\newdimen\normallineskiplimit \normallineskiplimit=0pt
+\end{inputex}
+  
+\begin{Syntax}
+\C{normalbaselines} \pp{通常の行送りに戻す}
+\end{Syntax}
+
+\begin{inputex}
+\def\normalbaselines{%
+  \lineskip=\normallineskip
+  \baselineskip=\normalbaselineskip
+  \lineskiplimit=\normallineskiplimit
+}
+\end{inputex}
+
+\begin{Syntax}
+\C{frenchspacing}  \pp{フランス語風にスペーシング}\\
+\C{nonfrenchspacing} \pp{通常のスペースファクタでスペーシング}
+\end{Syntax}
+
+
+  \subsection{段落処理}
+
+%\section{段落の制御あれこれ}
+%\subsection{段落の左右余白}
+
+\C{rightskip} と \C{leftskip} を使うと、ごにょごにょできる。ただし、段落
+が終了した時点で設定が反映されるので、段落の終了を明示的に示す必要もあり
+ます。
+\begin{inputex}
+{\ifvmode\leavevmode\fi
+ \leftskip=3zw \rightskip=3zw
+ あいうえお、かきくけこ\par
+}
+\end{inputex}
+波括弧は \C{leftskip} や \C{rightskip} などの\Z{大域変数}の設定が
+外側の部分にも影響しないように、有効範囲（\Z{スコープ}）を決めています。
+
+%\subsection{字下げ量}
+インデントを操作する命令として \C{hangindent} と \C{hangafter} の
+二つがあります。
+\begin{Syntax}
+\C{hangindent} (字下げの幅) \\
+\C{hangafter}  (どの行から字下げするか決める)
+\end{Syntax}
+
+%\subsection{もっとへんなの}
+\begin{Syntax}
+\C{parshape}\,$=n\,i_1\,l_1\,i_2\,l_2\,\cdots\,i_n\,l_n$ 
+\end{Syntax}
+
+
+%\section{段落の余白の制御}
+\begin{inputex}
+\bgroup\rightskip=3zw \leftskip=\rightskip
+段落が終了した時点で、値が反映される。
+段落の終了を明示的に示さないとだめ。\par\egroup
+\newenvironment{myquote}[2]%
+  {\ifvmode\par\fi\bgroup\leftskip#1\relax\rightskip#2}%
+  {\par\egroup}
+\begin{myquote}
+段落が終了した時点で、値が反映される。
+段落の終了を明示的に示さないとだめ。
+\end{myquote}
+\end{inputex}
+
+\def\KIKEN{\noindent%
+  \kern-1.5zw\hbox to 0pt{\hss \dbend\manfntsymbol{177}\hss}%
+  \hangindent=2zw \hangafter=-2 \kern1.5zw}
+\KIKEN 
+それはちょっとやめたほうが良いんじゃないか？
+だってねぇ、これから逝くんでしょう？やっぱり
+やめたほうがいいよなぁ。あぁぁ。
+それはちょっとやめたほうが良いんじゃないか？
+だってねぇ、これから逝くんでしょう？やっぱり
+やめたほうがいいよなぁ。あぁぁ。
+それはちょっとやめたほうが良いんじゃないか？
+だってねぇ、これから逝くんでしょう？やっぱり
+やめたほうがいいよなぁ。あぁぁ。
+
+
+
+  \subsection{スペースファクタ}
+  
+\begin{Exe}
+\TeX では \C{TeX} 命令は
+T\kern-.1667em\lower.5ex\hbox{E}\kern-.125emX
+と定義されていますが，\LaTeXe では
+T\kern-.1667em\lower.5ex\hbox{E}\kern-.125emX\@
+と定義されているのは何故でしょうか．\C{@} はスペースファクタである事を考
+慮してください． 
+\end{Exe}
+
+  \subsection{ハイフネーション}
+
+%行を分割するにはうんぬんカンヌΣ(・ん・；)．
+\subsection{ハイフネーション}
+\TeX のハイフネーションを実現するハイフネーションアルゴリズムは
+そもそも欧文のハイフネーションはその単語の品詞によって違うことが問題とな
+ります。名詞では「贈り物」を意味する`present'は`pres-ent'になりますが、
+これが「贈呈する」の動詞になると、`pre-sent'になり、アクセントも変わりま
+す。もし、誤ったハイフネーションを組版してしまった場合は、文の構造までも
+が変わってしまうので、ハイフネーション一つをとっても難しい問題です。
+
+このような問題に対しては、最低でも構文解析等が必要になり、より完成度を高
+める場合は意味解析なども要求されます。しかし、それらの処理を実装すること
+は非常に難しいことで、いわゆる自然言語処理の領域に手を染めなければなりま
+せん。
+
+\TeX ではもう少し簡易なアルゴリズムでハイフネーションを行っています。簡
+易といてもそれは\ppl{Frank Liang}によって発見された優秀なアルゴリズムで、
+精度が89.3\% と極めて高くなっています。これは実際の単語の使用頻度を考え
+ると、正確性は95\%を超えるとも \TeX の作成者の著書で述べられています。
+
+\TeX はハイフネーションをその辞書の中から検索し、パターンが一致した
+ものを採用します。そのため、新語などにもある程度対応します。
+もし\TeX に登録されていない単語でも \C{hyphenation} コマンドで
+大域的に指定することができます。
+\begin{Syntax}
+\C{hyphenation}\pa{単語, \ldots} \\
+\C{fussy}\\
+\C{sloppy}
+\end{Syntax}
+
+\begin{InOut}
+\hyphenation{ho-ge pi-yo ge-ma a-rya}
+{\fussy hoge hoge hoge hoge 
+ hogehogehogehogehogehoge hoge.}\par
+{\sloppy hoge hoge hoge hoge hoge 
+ hogehogehogehogehoge hoge.}\par
+hoge hogehogehogehogehoge hoge.
+\end{InOut}
+
+  \subsection{行分割}  
+
+
+
+  \subsection{ページ分割}
+  \subsection{ブレークポイント}  
+  
+
+\chapter{\LaTeXe 解体}  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+ \section{予備知識}
+\Cidx{fmtname}
+\Cidx{fmtversion}
+\LaTeXe のマクロを眺めたり手を出す前に知っておくと便利なものがあります。
+
+\begin{inputex}
+\def\fmtname{LaTeX2e} 
+\def\fmtversion{2001/06/01}
+\end{inputex}
+
+
+\begin{Syntax}
+ \C{typeout}\pa{ターミナルに警告として表示したい内容} \\
+ \C{typein}\opa{制御綴}\pa{ターミナルに警告として表示したい内容}
+\end{Syntax}
+
+\begin{inputex}
+\newcount\hoge
+\typeout{ちょっとお尋ねしたいことがあります。}
+私の名前は「\typein{あなたの名前はなんですか?}」です。
+私は\typein[\tempstr]{あなたの年齢は?} \tempstr 歳になります。
+\hoge=\tempstr \advance\hoge 1% インクリメント
+来年は \the\hoge 歳になります。\tempstr 
+\end{inputex}
+
+\begin{OutTerm}
+ちょっとお尋ねしたいことがあります。
+あなたの名前はなんですか?
+
+\@typein=渡辺徹
+あなたの年齢は?
+
+\tempstr=21
+\end{OutTerm}
+
+   \subsubsection{記号やマクロの保存}
+とある表紙で何らかの記号をアクティブにしてしまうと、あっちの人になって
+元の世界に帰って来れなくなるので、ある程度の記号に関してはバックスラッシュ
+と普通の文字で別の参照手段を残しておきます。
+\Cidx{lq}%
+\Cidx{rq}%
+\Cidx{lblack}%
+\Cidx{rblack}%
+\Cidx{endgraf}%
+\Cidx{endline}%
+\Cidx{space}%
+\Cidx{empty}%
+\Cidx{@empty}%
+\Cidx{null}%
+\Cidx{bgroup}%
+\Cidx{egroup}%
+\begin{inputex}
+\def\^^M{\ } % これは改行文字をスペースとして定義する
+\let\^^I\^^M % これはタブ文字をスペースとする
+\def\lq{`}% 左シングルクオート 
+\def\rq{'}% 右シングルクオート 
+\def\lblack{[}% 左角括弧
+\def\rblack{]}% 右角括弧
+\let\endgraf=\par% plain TeX の実改段落 \par を保存
+\let\endline=\cr% plain Tex の実改行 \cr を保存
+\def\space{ }% スペースを \space として定義することで展開抑制を狙う
+\let\empty\@empty%
+\def\null{\hbox{}}% ページ先頭などで使うことも
+\let\bgroup={
+\let\egroup=}
+\end{inputex}
+
+\C{@empty} は次のように定義されているものとします。
+\C{space} のほかに \C{@spaces} も定義されています。
+\begin{inputex}
+\def\@empty{}
+\def\@spaces{\space\space\space\space}% 空白四つ
+\end{inputex}
+
+%スペースを補う必要もなくなる。
+\Cidx{@height}%
+\Cidx{@depth}%
+\Cidx{@width}%
+\Cidx{@minus}%
+\Cidx{@plus}%
+\begin{inputex}
+\def\@height{height} 
+\def\@depth{depth}
+\def\@width{width}
+\def\@minus{minus}
+\def\@plus{plus}
+\end{inputex}
+
+\Cidx{hb@xt@}%
+\begin{inputex}
+\def\hbx@t@{\hbox to} 
+\end{inputex}
+
+\Cidx{@@par}% オリジナルの改段落
+\Cidx{@@hyph}% オリジナルのハイフン
+\Cidx{@dischyph}% オリジナルのハイフン
+\Cidx{@@italiccorr}% オリジナルのイタリック補正
+\TeX プリミティブの保存。
+\begin{inputex}
+\let\@@par=\par
+\let\@@hyph=\-
+\let\@dischyph=\-
+\let\@@italiccorr=\/
+\end{inputex}
+
+\begin{Syntax}
+\C{obeylines} \\
+\C{obeyspaces}
+\end{Syntax}
+
+\begin{InOut}
+\bgroup
+連続する空白  改行は普通は一つ
+のスペースとして扱われる。\par
+\obeylines \obeyspaces%
+連続する空白  改行は普通は一つ
+のスペースとして扱われる。
+\egroup
+\end{InOut}
+
+
+\begin{Syntax}
+\C{slash} 
+\end{Syntax}
+改行できるか出来ないか。
+
+\begin{Syntax}
+\C{break} \pp{分割を促す} \\
+\C{nobreak} \pp{分割を抑制する} \\
+\C{allowbreak} \pp{分割を許す} \\
+\C{smallbreak} \pp{-50} \\
+\C{medbreak} \pp{-100} \\
+\C{bigbreak} \pp{-200} 
+\end{Syntax}
+
+\C{m@th} は良く見掛けるマクロ。
+\begin{inputex}
+\def\m@th{\mathsurround\z@} 
+\end{inputex}
+
+\subsubsection{引数}
+\Cidx{@gobble}%
+\Cidx{@gobbletwo}%
+\Cidx{@gobblefour}%
+\Cidx{@firstofone}%
+\Cidx{@firstoftwo}%
+\Cidx{@secondoftwo}%
+\Cidx{@iden}%
+\Cidx{@thirdofthree}%
+\Cidx{@expandtwoargs}%
+\Cidx{@backslashchar}%
+\begin{inputex}
+\long\def\@gobble#1{} 
+\long\def\@gobbletwo#1#2{}
+\long\def\gobblefour#1#2#3#4{}
+\long\def\@firstofone#1{#1}
+\long\def\@firstoftwo#1#2{#1}
+\long\def\@secondoftwo#1#2{#2}
+\let\@iden \@firstofone
+\long\def\@thirdofthree#1#2#3{#3}
+\long\def\@expandtwoargs#1#2#3{%
+  \edef\reserved@a{\noexpand#1{#2}{#}}\reserved@a}
+% はてはて
+\edef\@backslashchar{\expandafter\@gobble\string\\}
+\end{inputex}
+
+\begin{inputex}
+\@gobble
+\@gobbletwo
+\end{inputex}
+
+\subsubsection{テキスト用コマンド}
+
+%\paragraph{文中の上付き添え字}
+例えば \C{texttrademark} で \texttrademark を出力するように、
+添え字は何かと文中でも使うものです。この場合は \C{textsuperscript} 
+を使うとうまく行きます。
+\begin{InOut}
+\let\tsp\textsuperscript
+詳細は参考文献\tsp{(1,3}を参照してください。
+\end{InOut}
+
+%\paragraph{合字}
+何らかの原因で合字（エンコーディングの問題などで）が使え
+ないときは、それぞれ次のコマンドで代替することができます。
+\newcommand*\UC[2]{\texttt{#1}&\C{#2}&\csname #2\endcsname\relax}
+\begin{center}
+\begin{tabular}{lll}
+通常の命令 &代替命令& 合字 \\
+ \UC{-\--\--}{textemdash}     \\
+ \UC{-\--} {textendash}       \\
+ \UC{!\-`} {textexclamdown}   \\
+ \UC{?\-`} {textquestiondown} \\
+ \UC{`\-`} {textquotedblleft} \\
+ \UC{'\-'} {textquotedblright}\\
+ \UC{`}    {textquoteleft}    \\
+ \UC{'}    {textquoteright}   \\
+\end{tabular}
+\end{center}
+
+たまにドイツ語などで合字を殺したいときは、
+\C{textcompwordmark} 命令を使うこともできます。
+これはハイフネーションされません。ハイフネーション
+されても良い場合は\C{-}を使うと良いでしょう。
+\begin{InOut}
+shelfful, shelf\textcompwordmark ful, shelf\-ful\par	
+\end{InOut}
+
+
+
+ \section{リスト系環境}
+
+リスト系環境を理解するには \TeX における段落処理を
+理解する必要があります。まずは次の三つの段落制御用の
+コマンドを見てください。
+
+\Cidx{@setpar}%
+\Cidx{@par}%
+\Cidx{@restorepar}%
+改段落 \C{par} はリスト系の環境や \E{array}/\E{tabular}環境
+などでは適宜都合の良いように変更されます。
+\begin{inputex}
+\def\@setpar#1{\def\par{#1}\def\@par{#1}} 
+\def\@par{\let\par\@@par\par}
+\def\@restorepar{\def\par{\@par}}
+\end{inputex}
+\TeX オリジナルの \C{par} は \C{@@par} に保存されています。
+\C{@setpar} によって \C{par} と \C{@par} の定義内容を
+変更します。 \C{@par} には予めオリジナルの \C{@@par} を定義
+しておき、元に戻すときは \C{@restorepar} を呼び出します。
+
+  \subsection{リスト型環境}  
+
+  \subsection{自作の箇条書き型の環境}
+箇条書きとはいくつかの段落を改行や余白などを含めた一連の項目のことです．
+\LaTeX ではすでにこの箇条書き型の環境が登場しています．主な環境として
+\begin{itemize}
+\item ラベル付きの \E{itemize} 環境．
+\item 番号付きの \E{enumerate} 環境．
+\item 説明ラベル付きの \E{description }環境．
+\item 項目を中央揃えさせる \E{center} 環境．
+\end{itemize}
+などがあります．箇条書き型の環境では項目の始めにラベルを
+付けて字下げを挿入します．ラベルや字下げは必ずしも必要では
+ないので，中央揃えさせるだけの \E{center} 環境にも使えます．
+既存の箇条書き型環境で満足できないときは \E{list} 環境や，
+少し制限のある \E{trivlist} 環境のパラメータの変更を行います．
+
+\subsection{\texttt{list} 環境}
+\E{list} 環境は汎用性の高い箇条書き型環境です．
+
+\begin{Syntax}
+\verb|\begin{list}|\pa{標準のラベル}\pa{設定} \\
+\va{項目} \\
+\verb|\end{list}|
+\end{Syntax}
+\begin{figure}[htbp]
+ \begin{center}
+  \begin{picture}(300,500)(0,0)
+%%
+%  \drawline(0,500)(0,450)(300,450)(300,500)%前のテキスト
+%  \put(150,450){\mbox{箇条書き前の文章}}
+%  \drawline(0,0)(0,50)(300,50)(300,0)%後のテキスト
+%%
+%  \drawline(20,400)(70,400)(70,385)(20,385)(20,400)%ラベル1
+%  \LRArrow(20,380){50}[\BS labelwidth]
+%  \put(45,397){\makebox(0,0)[t]{ラベル1}}
+%  \drawline(20,200)(70,200)(70,185)(20,185)(20,200)%ラベル2
+%  \put(45,197){\makebox(0,0)[t]{ラベル2}}
+%%
+%   %第1段落
+%   \LRArrow(80,383){15}[] 
+%   \put(110,380){\makebox(0,0)[t]{\texttt{\BS itemindent}}}
+%   \LRArrow(70,400){25}[]
+%   \put(90,403){\makebox(0,0)[b]{\texttt{\BS labelsep}}}
+%  \drawline(80,385)(95,385)(95,400)(300,400)(300,350)(80,350)(80,385)
+%
+  \end{picture}
+  \caption{\texttt{list}環境で設定できる値}
+ \end{center}
+\end{figure}
+
+\section{箇条書き環境の自作}
+
+\begin{Syntax}
+\C{list}\pa{ラベル}\pa{命令} \va{項目} \cmd{endlist}\\
+\C{item}
+\end{Syntax}
+
+\begin{Syntax}
+\verb|\begin{trivlist}| \va{項目} \verb|\end{endlist}|
+\end{Syntax}
+
+\begin{figure}[htbp]
+\begin{center}
+\setlength{\unitlength}{.4pt}
+\begin{picture}(400,500)(0,0)
+\put(0,0){\circle*{1}}
+\end{picture}
+\caption{リスト環境の形式}\label{fig:listenv}
+\end{center}
+\end{figure}
+
+\begin{Syntax}
+\C{leftmargin} (0)\\
+\C{labelwidth} (0) \\
+\C{itemindent} (0) \\
+\C{linewidth} (\C{hsize})
+\end{Syntax}
+
+\begin{Syntax}
+\C{makelabel} \\
+\C{usecounter}\pa{hoge}
+\C{boxlabels} 
+\end{Syntax}
+
+垂直空白(スキップ)
+\begin{Syntax}
+\C{topsep} (0)\\
+\C{partopsep} (0)\\
+\C{itemsep} (0)\\
+\C{parsep} (\C{parskip})
+\end{Syntax}
+
+水平空白(寸法)
+\begin{Syntax}
+\C{leftmargin} ()\\
+\C{rightmargin} (0pt)\\
+\C{listparindent} (0pt)\\
+\C{itemindent} (0pt)
+\C{labelwidth} (0)
+\C{labelsep} (0)
+\end{Syntax}
+
+\begin{Syntax}
+\C{leftmargini} 
+\C{leftmarginii} 
+\C{leftmarginiii} 
+\C{leftmarginiv} 
+\C{leftmarginv} 
+\C{leftmarginvi} 
+\end{Syntax}
+
+\C{itemize} と \C{enumerate}
+カウンタ \K{enumi}，\K{enumii}，\K{enumiii}，\K{enumiv}，
+
+
+  \subsection{\E{trivlist}環境}
+
+  \subsection{\E{enumerate}など}  
+
+ \section{数式}  
+
+  \subsection{揃える}
+  \subsection{揃えない}  
+  \subsection{複数行}
+  \subsection{数式番号}
+
+
+ %\section{\texttt{equation} 環境もどき}
+まぁ、てきとうに改行して \C{displaystyle} で表示させる、なんてことも
+できるわけで、それでいて \K{equation} カウンタを増分させて、てきとうに
+右端にでも表示させればいいわけで。
+\begin{inputex}
+\def\equation{\\\nopagebreak%
+   \refstepcounter{equation}%
+   \hfill\bgroup$\displaystyle}%$
+\def\endequation{$\egroup\hfill(\theequation)\\\nopagebreak
+   \ignorespacesafterend}%$
+\end{inputex}
+似非ですけど。
+\begin{inputex}
+\begin{equation}
+f(x) = ax + b
+\end{equation}
+hogehoge
+\end{inputex}
+とした場合、 \verb|\end{equation}| の後の改行がホワイトスペースとなり、
+`hogehoge' の前にスペースとして表れるので \C{ignorespacesafterend} が
+必要となります。
+
+  \subsection{各種環境}
+
+\clearpage
+
+ \section{表組み}  
+
+
+\begin{inputex}
+\def\ialign{\everycr{}\tabskip\z@skip\halign} 
+\def\oalign#1{\leavevmode\vtop{\baselineskip\z@skip \lineskip.25ex%
+   \ialign{##\crcr#1\crcr}}} 
+\def\o@lign{\lineskiplimit\z@ \oalign} 
+\def\ooalign{\lineskiplimit-\maxdimen \oalign}
+\def\sh@ft#1{\dimen@.00#1ex\multiply\dimen@\fontdimen1\font
+  \kern-.0156\dimen@} % compensate for slant in lowered accents
+\end{inputex}
+
+  \subsection{\E{tabbing}環境}
+  \subsection{\E{array}環境}
+  \subsection{\E{tabular}環境}  
+  \subsection{既存環境の拡張}  
+ \section{浮動体}  
+  \subsection{制御用パラメータ}
+  \subsection{図表見出し}
+  \subsection{図表目次}
+  \subsection{浮動体制御}
+ \section{参考文献}  
+  \subsection{引用形式}
+  \subsection{一覧形式}
+ \section{ページスタイル}  
+
+  \subsection{既存のスタイル}
+\LaTeX の標準では
+\begin{Syntax}
+\C{thispagestyle}\pa{スタイル} \\
+\C{pagestyle}\pa{スタイル}
+\end{Syntax}
+とすることにより、特定ページだけのページスタイルの変更や、それ以降の
+ページスタイルの変更が行なえます。標準的なクラスファイルで提供されている
+スタイルには
+\begin{description}
+ \item[\texttt{empty}] 
+左右上下、何も表示しない。
+ \item[\texttt{plain}] 
+左右ページ下端中央にページ番号のみを出力する。
+ \item[\texttt{myheadings}]
+\C{markright}\pa{偶数頁に出力する要素} か 
+\C{markboth} のいずれかにより
+ヘッダーのマーク (\C{leftmark}, \C{rightmark}) を決める。
+ \item[\texttt{headings}] 
+\C{leftmark} (偶数頁), \C{rightmark} (奇数頁) とページ番号 (両頁) をヘッ
+ダーに出力する。
+\end{description}
+\Y{book}/\Y{report} 系クラスファイルでは
+\begin{inputex}
+\leftmark := \chaptermark
+\rightmark := \sectionmark
+\end{inputex}
+となり、\Y{article} 系クラスでは
+\begin{inputex}
+\leftmark := \sectionmark
+\rightmark := \subsectionmark
+\end{inputex}
+等となることが多い。
+
+
+  \subsection{ページスタイルのしくみ}
+\LaTeX では
+\begin{inputex}
+\pagestyle{headings}
+\end{inputex}
+などとすると
+\begin{inputex}
+\def\ps@headings{%
+  <ページスタイルの定義内容>%
+}
+\end{inputex}
+が参照されることになります。ここでは
+\begin{description}
+ \item[\C{@oddhead}]  奇数ヘッダ
+ \item[\C{@oddfoot}]  奇数フッタ
+ \item[\C{@evenhead}] 偶数ヘッダ
+ \item[\C{@evenfoot}] 偶数フッタ
+\end{description}
+の四つを最低でも定義しなければなりません。
+もっともシンプルな \texttt{empty} スタイルは次のように定義されています。
+\begin{inputex}
+\def\ps@empty{%
+   \let\@mkboth \@gobbletwo
+   \let\@oddhead \@empty
+   \let\@oddfoot \@empty
+   \let\@evenhead \@empty
+   \let\@evenfoot \@empty
+}
+\end{inputex}
+これらはおおよそすべてのページスタイルに関わるコマンドを
+空にします。 \C{@empty} は 波括弧 \verb|{}| に展開されるので、
+\begin{inputex}
+\def\@oddhead{}
+\end{inputex}
+と定義したことと同じ意味になります。\C{@mkboth} は
+\begin{inputex}
+\let\@mkboth\@gobbletwo
+\end{inputex}
+として引数を二つ無効にするマクロとして代入されています。
+\C{@mkboth} はユーザーが指定するものではなく、クラスファイルの
+なかなどで使われています。これは例えばユーザが
+\begin{inputex}
+\markboth{ほげほげ}{ほげほげ}
+\markright{ほげ}
+\end{inputex}
+とした場合は有効になります。
+
+次に \texttt{plain} スタイルを見てみましょう。これは \C{@oddfoot} と \C{@evenfoot} の
+中央にページ番号を出力すれば良いだけなので、 \texttt{empty} スタイルを
+少し書き換えるだけで良いことになります。
+\begin{inputex}
+\def\ps@plain{%
+   \let\@mkboth \@gobbletwo
+   \let\@oddhead \@empty
+   \let\@evenhead \@empty
+   \def\@oddfoot{\reset@font \hfil \thepage \hfil}%
+   \let\@evenfoot \@oddfoot
+}
+\end{inputex}
+\texttt{empty} と同様に空にするところは空にします。 問題となる \C{@oddfoot} は
+\begin{inputex}
+\def\@oddfoot{\reset@font \hfil\thepage\hfil}%
+\end{inputex}
+として \C{hfil} でサンドイッチにすることで中央にします。
+ついでに書体を標準の設定にするために \C{reset@font} をここに追加します。
+このように \C{@oddfoot} を定義し、これを \C{@evenfoot} にも同様に代入します。
+\begin{inputex}
+\let\@evenfoot \@oddfoot
+\end{inputex}
+これで \texttt{plain} が完成します。
+
+次は \texttt{myheadings} を考えてみます。 これはユーザーが \C{leftmark}
+と \C{rightmark} を適宜設定すると言うことを前提とするため、案外簡単に定
+義できます。常識的・慣習的・規則的に、普通は 奇数頁が右側、偶数頁が左側
+にくる事になります (左綴じの場合です、右綴じの場合は逆です)。
+\texttt{headings} なのでフッターは空にします。またページ番号はノドではなく
+小口に出すようにするのが古くからの慣習です。\C{leftmark} と
+\C{rightmark} はノドに出します。
+\begin{inputex}
+\def\ps@myheadings{%
+   \let\@oddfoot \@empty
+   \let\@evenfoot \@empty
+   \def\@evenhead{\reset@font \thepage \hfil \leftmark}%
+   \def\@oddhead{\reset@font\rightmark \hfil \thepage}%
+   \let\@mkboth \@gobbletwo
+   \let\chaptermark \@gobble
+   \let\sectionmark \@gobble     
+   \let\subsectionmark \@gobble % article 系
+}
+\end{inputex}
+実は \C{leftmark} や \C{rightmark} は \C{section} や \C{chapter} などの
+特定の見出し命令が呼び出されたときに自動的に
+\begin{Syntax}
+\C{chaptermark}\pa{\C{chapter}の必須引数}\\
+\C{sectionmark}\pa{\C{section}の必須引数}
+\end{Syntax}
+などが実行されてマークが設定されてしまいます。これを
+無効化するために \C{chaptermark} や \C{sectionmark} (\Y{article} 系の場
+合は \C{chaptermark}はない) を引数を一つ無効にするという命令を代入します
+(\C{@gobble})。
+
+これでとりあえずは \texttt{myheadings} が定義できます。適宜、ヘッダーの
+書体を変更するあり \C{reset@font} で書体を標準にするなどが考えられます。
+欧文の場合は \C{slshape} でスラント体に変更することが多いようです (本文と
+ヘッダを明確に分離するために賢い方法)。
+
+さて、いよいよ本命の \texttt{headings} を定義します。今回は
+\Y{report}/\Y{book} 系のクラスで用いることを前提とします (さらに
+\Option{twoside} で \Option{openright} というオプション付き)。 
+\Y{article} 系で用いる場合は
+\begin{inputex}
+\chaptermark (0) -> \sectionmark (1)
+\sectionmark  (1)-> \subsectionmark (2)
+\end{inputex}
+などに変更するなどの細かい部分だけですので、すぐに応用できるでしょう。
+まずは特に難しく考えなくてもできるものから定義しましょう。 \C{@mkboth} は
+今回 \C{markboth}, \C{markright} がユーザ支配ではないのでクラスファイル側支配と
+するため \C{markboth} を代入します。。フッターも空にします。\C{@evenhead}
+と \C{@oddhead} は \texttt{myheadings} の定義と同様で構いません。
+\begin{inputex}
+\def\ps@headings{%
+    \let\@oddfoot \@empty
+    \let\@evenfoot \@empty
+    \let\@evenhead{\reset@font \thepage \hfil \leftmark}%
+    \let\@oddhead{\reset@font \rightmark \hfil \thepage}%
+    \let@mkboth \markboth
+\end{inputex}
+さて、ここまでは簡単ですが、 問題の \C{chaptermark} と \C{sectionmark} を定義して
+いません。\C{chaptermark} でやるべき事は \C{leftmark} を適切に設定することです。
+この場合、前付・後付以外では「第 3 章  章見出しタイトル」となるようにします。
+さらに通常は \K{secnumdepth} によってユーザがカウンタをつけるか否かを制御
+するため、この条件判断も必要になります。\C{sectionmark} も同様な方法で判定します。
+\begin{inputex}
+\def\chaptermark##1{%
+   \markboth{%
+      \ifnum \c@secnumdepth >\m@ne
+         \if@mainmatter
+            第 \thechapter 章\hskip 1zw
+         \fi
+      \fi
+      ##1}{}%
+}%
+\let\@presectionname\@empty
+\let\@postsectionname\@empty
+\def\sectionmark##1{%
+   \markright{%
+      \ifnum \c@secnumdepth >\z@
+         \if@mainmatter
+            \@presectionname \thesection \@postsectionname \hskip 1zw
+         \fi
+      \fi
+      ##1}%
+}%
+\end{inputex}
+\C{chaptermark} も \C{sectionarmk} の定義も \C{def} の中の \C{def} なの
+で \verb|##| で井桁をエスケープさせます。また、\K{secnumpdeth} の裸のカウン
+タ数を参照するために \C{c@secnumdepth}を \C{ifnum} で使用していますし、
+\C{@mainmatter} というブール値も 本文かどうかを判定するために使用しています。
+大抵の \Y{report}/\Y{book} 系のクラスファイルは
+\begin{inputex}
+表紙
+\frontmatter
+前付け
+\mainmatter 
+本文
+\backmatter
+後付
+\end{inputex}
+という構造にするように設計されているので、\C{mainmatter} が実行されたときに
+\C{@mainmatter} は `true' になっています。欧文の場合は見出しのタイトルを大文字に
+するとか色々と慣習があるので、引数全体を \C{MakeUppercase} で括るという
+こともあります。
+
+しかし、このままでは実は問題があります。それは \C{chapter} など、章見出しが
+存在するページのページスタイルです。これは \C{chapter} 命令が呼び出された段階で
+\begin{inputex}
+\thispagestyle{plain}
+\end{inputex}
+等のようにページ下端中央にページ番号だけを表示する仕様になっています。
+章見出しがあるページはそれだけで要素としての強度があるので、ページ番号を
+柱 (ヘッダー) に出力すべきではない、という考え方もあります。これはヘッダに
+下線を引いた場合などに実感できます (このような思想の詳しい事は組版系の書籍
+を参照してください)。そこで、章見出しのあるページだけ、ページ番号を出力
+するシンプルなページスタイル \texttt{plain} を採用します。
+
+大抵の場合は \texttt{headings} を通常のページスタイルとして
+\texttt{plain} は使っていません (書籍などでは)。そこで \texttt{plain} ペー
+ジスタイルを再定義することで、一時凌ぎをします。
+\begin{inputex}
+\def\ps@plain{%
+   \let\@mkboth \@gobbletwo
+   \def\@oddhead{\reset@font \hfil \thepage}%
+   \let\@evenhead \@empty
+   \let\@oddfoot \@empty
+   \let\@evenfoot \@oddfoot
+}
+\end{inputex}
+これで、とりあえず、ページスタイルの基本は終了です。
+
+  \subsection{自作のスタイル}
+
+さて、前回と前々回はページスタイルの基本的な事を学習しました。
+まだ、\C{mark}, \C{leftmark}, \C{rightmark}, \C{@themark} の中身には触れ
+ていませんが、ある程度の体裁の調整は出来るようになっています。例えば、小
+口部分に \C{leftmark}, \C{rightmark} を出力せずにページ番号のそばにおく
+ためには、次のように \C{@oddhead}, \C{@evenhead} を定義すれば良いことに
+なります。
+\begin{inputex}
+\def\@evenhead{\reset@font \thepage \hskip 1zw \leftmark \hfil}%
+\def\@oddhead{\reset@font \hfil \rightmark \hskip 1zw \thepage}%
+\end{inputex}
+
+ヘッダーのノド部分にあるタイトル \C{@headtitle} を、小口部分には
+\C{leftmark}, \C{rightmark} を表示させるようにします。ページ番号は
+フッターの小口に出すには次のようにします。
+\begin{inputex}
+\gdef\@headtitle{好き好き \LaTeXe 初級編}%
+\def\@evenhead{\reset@font \leftmark \hfil \@headtitle}%
+\def\@oddhead{\reset@font \@headtitle \hfil \rightmark}%
+\def\@evenfoot{\reset@font \bfseries \thepage \hfil}%
+\def\@oddfoot{\reset@font \bfseries \hfil \thepgae}%
+\end{inputex}
+
+多くの書籍で見掛けることが出来ますが、ヘッダ部分に下線を付加する
+方法の一つを紹介します。\C{textwidth} の幅を持つヘッダ用の箱 (\C{hbox}) に
+対して下線を引けば良いので、次のように \C{@evenhead} と \C{@oddhead} を
+定義します。
+\begin{inputex}
+\def\@evenhead{\underline{%
+   \hb@xt@ \textwidth{\thepage \hfil \leftmark}}}
+\def\@oddhead{\underline{%
+   \hb@xt@ \textwidth{\rightmark \hfil \thepage}}}
+\end{inputex}
+\C{hb@xt@} は \C{hbox to} の事です。
+
+おまけとして\Z{爪掛け} (\Z{thumb-index}) のあるページスタイルを考えてみます。
+爪は奇数ページだけに出力するものとし、爪部分は白色で章番号を、
+爪の背景は黒で、章番号に応じて爪の位置を下げるという事を実現
+することを考えます。簡単のために \E{picture} 環境を使って領域 0 の要素を
+追加します。今回は裁断における綴じの誤差が出ることを予想して、
+偶数ページには爪を表示させません。まずは爪を表示させる汎用的な
+マクロ \C{page@tume} を次のように定義します。
+爪は 本文 (\C{mainmatter} の後) にだけ表示すれば良いので \C{if@mainmatter} で
+判断をします。
+\begin{inputex}
+\def\page@tume{%
+   \if@mainmatter
+      \setlength\unitlength{1truecm}%
+      \begin{picture}(0,0)%
+      \put(1,-\value{chapter}){%
+         \makebox(0,0)[tl]{\rule{1truecm}{1truecm}}}%
+      \put(1,-\value{chapter}){%
+         \makebox(0,-.4)[tl]{%
+            \textcolor{white}{\hb@xt@ 1truecm{%
+              \hfil \sffamily \thechapter \hfil}}}}%
+      \end{picture}%
+   \fi
+}
+\end{inputex}
+しかし、このままでは章番号がどんどん増えて行くとページの下端を
+はみ出して最終的にはあっちの世界に旅だってしまうので、適当な
+場所で折り返します。これは {(\C{textwidth} $-1$\,cm)/1\,cm} で
+等によって算出することが出来るの (今回の場合は一つの爪が 1\,cm で構成され
+る) で、
+\begin{inputex}
+\newcount\cnt@tume
+\AtBeginDocument{%
+   \cnt@tume=\textheight
+   \setbox0=\hbox{\vrule width 0pt height 1truecm}%
+   \@tempcnta=\ht0
+   \advance\cnt@tume -\@tempcnta
+   \divide \cnt@tume \@tempcnta
+}
+\end{inputex}
+として \C{cnt@tume} に適当な上限値を与えます。とりあえず、上限値を
+越える章番号 (\C{c@chapter}) に関しては、上限値 (\C{cnt@tume}) で割った
+余りで出力すれば良いので、
+\begin{inputex}
+\newcount\cnt@tume@no
+ \def\get@tume@num{%
+     \@tempcnta=\c@chapter
+     \@whilenum \@tempcnta>\cnt@tume \do{%
+        \advance\@tempcnta -\cnt@tume}%
+     \cnt@tume@no=\@tempcnta
+}
+\end{inputex}
+として現在の章に応じた余り (\C{cnt@tume@no}) を求めるマクロ \C{get@tume@num}
+を定義します。このようにして \C{cnt@tume} (これはプリアンブルなどに配置すると
+良いが、ページレイアウトを変更するコマンドと \C{cnt@tume@no} を求める
+準備が出来たならば、先程の \C{page@tume} を次のように書き換えます。
+\begin{inputex}
+\def\page@tume{%
+   \if@mainmatter
+      \setlength\unitlength{1truecm}%
+      \begin{picture}(0,0)%
+      \get@tume@num % ここで \cnt@tume@no を求める
+      \put(1,-\the\cnt@tume@no){%
+         \makebox(0,0)[tl]{\rule{1truecm}{1truecm}}}%
+      \put(1,-\the\cnt@tume@no){%
+         \makebox(0,-.4)[tl]{%
+            \textcolor{white}{\hb@xt@ 1truecm{%
+              \hfil \thechapter \hfil}}}}%
+      \end{picture}%
+   \fi
+\end{inputex}
+ヘッダが書き出される度に \C{get@tume@num} が呼び出されて不経済ですが、
+今回はこれで妥協しましょう。全体をまとめると次のようになります。
+\begin{inputex}
+\documentclass{book}
+\usepackage[dvips]{color}
+%
+\makeatletter
+\newcount\cnt@tume % 折り返し地点 + 1
+\newcount\cnt@tume@no % 実際に爪を出力すべき位置
+% chapter
+\def\@prechaptername{第}
+\def\@postchaptername{章}
+% section
+\let\@presectionname\@empty
+\let\@postsectionname\@empty
+% \cnt@tume を \textheigth により求める
+\AtBeginDocument{%
+   \cnt@tume=\textheight
+   \setbox0=\hbox{\vrule width 0pt height 1truecm}%
+   \@tempcnta=\ht0
+   \advance\cnt@tume -\@tempcnta
+   \divide \cnt@tume \@tempcnta
+}
+% \cnt@tume@no をそのときの \c@chapter により求める \get@tume@no
+\def\get@tume@num{%
+   \@tempcnta=\c@chapter
+   \@whilenum \@tempcnta>\cnt@tume \do{\advance\@tempcnta -\cnt@tume}%
+   \cnt@tume@no=\@tempcnta
+}
+% 実際に爪を表示するためのマクロ \page@tume
+\def\page@tume{%
+   \if@mainmatter
+      \setlength\unitlength{1truecm}%
+      \begin{picture}(0,0)%
+      \get@tume@num
+      \put(1,-\the\cnt@tume@no){%
+         \makebox(0,0)[tl]{\rule{1truecm}{1truecm}}}%
+      \put(1,-\the\cnt@tume@no){%
+         \makebox(0,-.4)[tl]{%
+            \textcolor{white}{\hb@xt@ 1truecm{%
+               \hfil\sffamily\thechapter\hfil}}}}%
+      \end{picture}%
+   \fi
+}
+% \chapter のあるページにおけるスタイル \page@tume を \@oddhead に追加
+\def\ps@plain{%
+    \let\@mkboth \@gobbletwo
+    \def\@oddhead{\reset@font \hfil \thepage\page@tume}%
+    \let\@oddfoot \@empty
+    \let\@evenhead \@empty
+    \let\@evenfoot \@oddfoot
+}
+% 主となるページスタイル
+\def\ps@headings{%
+ \let\@oddfoot=\@empty
+ \let\@evenfoot=\@empty
+ \def\@evenhead{\underline{\hb@xt@ \textwidth{%
+    \thepage  \hfil \leftmark}}}%
+ \def\@oddhead{\underline{%
+    \hb@xt@ \textwidth{\rightmark \hfil \thepage}}%
+    \page@tume}% \@oddhead の最後に爪を追加
+ \let\@mkboth=\markboth
+ \def\chaptermark##1{%
+    \markboth{%
+       \ifnum \c@secnumdepth >\m@ne
+          \if@mainmatter
+             \@prechaptername \thechapter \@postchaptername 
+             \hskip 1zw
+          \fi
+       \fi
+       ##1}{}%
+ }%
+ \def\sectionmark##1{%
+    \markright{%
+       \ifnum \c@secnumdepth >\z@
+          \if@mainmatter
+            \@presectionname \thesection \@postsectionname \hskip 1zw
+          \fi
+       \fi
+       ##1}%
+ }%
+}
+\makeatother
+\pagestyle{headings}
+\begin{document}
+\end{inputex}
+
+
+\endinput
+\Fl{source2e.tex} の p.~89 \Fl{ltoutenc.dtx} から 
+

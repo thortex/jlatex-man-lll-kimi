@@ -1,0 +1,1883 @@
+\endinput
+
+\chapter{周辺ツール}
+
+
+\subsection{DVIドライバの仕事}
+さて、そうするおDVIファイルには使用されている書体の実際のグリフ情報
+等は反映されておらず、その書体の各文字の配置に関する情報しかないこと
+になります。そうすると実際のグリフが記載された情報が必要になります。
+これはGF（generic font）ファイル、PXL（pixel font）ファイル、
+PK（packed font）ファイルなどに記載されています。DVIドライバは都合に
+合わせてこれらの内からいずれかの形式のファイルを参照します。通常は
+圧縮されたPKファイルが参照されます。これらのファイルは\Hito{Donald
+Knuth}が作成したフォント作成用プログラム{\MF}によってその書体が
+デザインされていることになります。
+
+最近では解像度に依存しない
+True Typeフォントも使われてきていますので、以上三つのファイルが参照
+されることも少なくなっています。
+
+\section{{\TeX}のディレクトリ構造}
+{\TeX}は大変便利なプログラムでしたから，多くの人が{\TeX}に関わるプ
+ログラムやマクロなどを作りました．その結果もの凄い数のファイルがうま
+れ，どこに何を置けばよいのか分からない状態になりました．そこで，
+\Z[TeX Users Group]{{\TeX} Users Group}がどのファイルをどこに
+置くべきかを定めました．これが\yousyo{A Directory Structure for 
+\TeX Files}と呼ばれる文書\pp{CTAN tds/ にあります}に記されています．
+
+{\TeX}に関連するファイルを格納すべき一番上のディレクトリ\pp{フォルダ}
+を\fl{\$TEXMF}と呼びます．この\fl{\$TEXMF}を探すには次のように入力します．
+\begin{InTerm}
+ \item kpsewhich -expand-var='\$TEXMF'
+\end{InTerm}
+\Prog{kpsewhich}というプログラムを使って\fl{\$TEXMF}の
+変数を展開すると
+\begin{OutTerm}
+/usr/local/share/texmf 
+\end{OutTerm}
+などと表示されます．通常はこのディレクトリの下に関連する
+ファイルが収納されています．
+
+おおむね\fl{\$TEXMF}以下のディレクトリ構成は次のようになります．
+スラッシュ\qu{\str/}はディレクトリ\pp{フォルダ}の切れ目を意味します．
+\begin{description}
+ \item[\fl{bibtex/}] 
+ 欧文用の{\BibTeX}に関わるファイルが格納されています．
+ \fl{bibtex/bst/}以下には\Z{参考文献スタイル}が，
+ \fl{bibtex/bib/}以下には\Z{参考文献データベース}が
+ あると思います．
+
+ \item[\fl{context/}] 
+ 
+
+ \item[\fl{cweb/}] 
+ 
+ \item[\fl{doc/}] 
+ 
+ \item[\fl{dvipdfm/}] 
+ 
+ \item[\fl{dvips/}] 
+ 
+ \item[\fl{fontname/}] 
+ 
+ \item[\fl{fonts/}] 
+ 
+ \item[\fl{jbibtex/}] 
+ 
+ \item[\fl{ls-R}] 
+ Unix系OSで標準的に使われているコマンド{ls}に
+ \copt{-R}オプションを付けた出力を保存したようなファイル．
+ Cygwinなどの\ruby{stat}{スタット}\footnote{元々はラテン語な
+ のですが，プログラムが検索されて実行されるまでの時間のことだ
+ と思っていただけると良いかと思います．}が相当遅いマシンでは
+ この\Fl{ls-R}が必要になるでしょう．\Fl{ls-R}ファイルを
+ 作るには専用のプログラム\Prog{mktexlsr}を使います．
+ 端末から引数なしで実行すると自動的に\fl{\$TEXMF}を見つけ出し，
+ 適切に処理をしてくれます．この\Fl{ls-R}は\fl{\$TEMXF}以下から
+ ファイルを検索するために使われます．もしも\fl{\$TEXMF}以下の
+ ディレクトリ構成が変更された場合は\prog{mktexlsr}を実行しな
+ おさなければなりません．最近のWindowsは十分な処理速度があり
+ ますから，この\fl{ls-R}は不要と思われます．削除するときは
+ 端末から\Prog{deltexlsr}を実行するだけです．
+	    
+ \item[\fl{makeindex/}] 
+ 
+ \item[\fl{metafont/}] 
+ 
+ \item[\fl{metapost/}] 
+ 
+ \item[\fl{mft/}] 
+ 
+ \item[\fl{omega/}]  
+
+ \item[\fl{pdftex/}] 
+
+ \item[\fl{ptex/}] 
+
+ \item[\fl{tex/}] 
+
+ \item[\fl{tex4ht/}] 
+
+ \item[\fl{web2c/}] 
+
+\end{description}
+
+
+\chapter{フォント}
+
+\subsection{歴史背景}
+昔はフォントを選択するのも結構大変だった。今は楽になりました。
+
+1989年に\ppl{Frank Mittelback}と\ppl{Rainer Sch\"opf}らによって
+\AmSLaTeX 用のNFSS\,1（New Font Selection Scheme ver.~1）がリリース
+されました。そののち1992年に\LaTeXe 用に\LaTeX\,3 Project Team
+のメンバーがNFSS\,2 （New Font Selection Scheme ver.~2）を発表しました。
+現在私たちがメインに使用しているのはこのNFSS2となります。
+
+
+%\section{フォント選択}
+\LaTeXe においてどのようなフォント選択機構が実装されているのかを
+知らなければ、自由にフォントを使うこなすことができません。
+まず、基本的なフォントへのアクセス方法を考えてみます。
+あるフォントにアクセスするためには次の五つの属性が必要になります。
+\begin{description}
+ \item[符号化方式 (encoding)] ASCIIだのUnicodeだの、要するに文字コードが
+どうなっているのかを指定します。\LaTeX の世界では独自のエンコーディング
+が良く使われています。
+ \item[ファミリー (family)] ある家系の一連のフォントを示します。
+例えばKnuthのデザインした`Computer Modern Roman'やComputer Modern 
+typewriter'はComputer Modernのファミリー（家系）です。
+ \item[シリーズ (series)] 線の太さや文字幅 (set width) の違いによって
+分類されたフォント。
+ \item[シェイプ (shape)] 形状の変化の違いによる種類。
+ \item[サイズ (size)] フォントの大きさ。
+\end{description}
+
+主なエンコーディング
+\begin{center}
+\begin{tabular}{ll}
+ \str{OT1} & \TeX\ text \\
+ \str{T1}  & \TeX\ extended text\\
+ \str{OML} & \TeX\ math italic \\
+ \str{OMS} & \TeX\ math symbols \\
+ \str{OMX} & \TeX\ math large symbols\\
+ \str{U}   & Unknown \\
+ \str{L}\va{xx}&  A local encoding \\
+\end{tabular}
+\end{center}
+
+主なファミリー
+\begin{center}
+\begin{tabular}{ll}
+ \str{cmr}  & Computer Modern Roman \\
+ \str{cmss} & Computer Modern San Serif \\
+ \str{cmtt} & Computer Modern Typewriter \\
+ \str{cmm}  & Computer Modern Math Italic \\
+ \str{cmsy} & Computer Modern Math Symbols \\
+ \str{cmex} & Computer Modern Math Extensions \\
+ \str{ptm}  & Adobe Times \\
+ \str{phv}  & Adobe Helvetica \\
+ \str{pcr}  & Adobe Courier \\
+\end{tabular}
+\end{center}
+
+
+シリーズ
+\begin{center}
+ \begin{tabular}{ll}
+  \str{m}  & Medium \\
+  \str{b}  & Bold \\
+  \str{bx} & Bold extended \\
+  \str{sb} & Semi-bold \\
+  \str{c}  & Condensed \\
+ \end{tabular}
+\end{center}
+
+
+シェイプ
+\begin{center}
+\begin{tabular}{ll}
+ \str{n}  & Normal (that is `upright' or `roman') \\
+ \str{it} & Italic \\
+ \str{sl} & Slanted (or `oblique') \\
+ \str{sc} & Caps and small caps \\
+\end{tabular}
+\end{center}
+
+
+単位が省略された場合はポイント`pt'が指定されたものとなります。
+OT1 cmr m n 10 --(Computer Modern Roman 10 point)--> cmr10
+OT1 cmss m sl 1pc --(CM Sans Oblique 1pica)--> cmssi12
+T1 ptm b it 1in --(Adobe Times Bold Italic 1 inch)--> ptmb8t at 1in
+
+\C{textrm} , \C{small}, \C{textup} などは
+これらの選択のために使われます
+
+\C{fontenconding}
+\C{fontfamily}
+\C{fontseries}
+\C{fontshpae}
+\C{fontsize}\pa{size}\pa{baseilneskip}
+\C{linespread}\pa{factor}
+
+\C{selectfont} で実際に選択する
+\begin{inputex}
+\fontfamily{ptm}\fontseries{b}\selectfont Some text.
+\end{inputex}
+
+\begin{Syntax}
+ \C{usefont}\pa{encoding}\pa{family}\pa{series}\pa{shape}
+\end{Syntax}
+も便利です.
+
+どこに保存されるか
+\C{f@encoding}
+\C{f@family}
+\C{f@series}
+\C{f@shape}
+\C{f@size}
+\C{f@baseilneskip}
+\C{tf@size}
+\C{sf@size}
+\C{ssf@size}
+
+%こんなこともできます
+\begin{inputex}
+\DeclareFixedFont{\picturechar}{OT1}{cmr}{m}{n}{5}
+{\picturechar .}
+\end{inputex}
+
+%\textrmは次のようにして定義される
+\begin{inputex}
+\DeclareTextFontCommand{\textrm}{\rmfamily}
+\end{inputex}
+%そこで、通常の設定で、イタリック体だけにしたいときは
+\begin{inputex}
+\DeclareTextFontCommand{\normalit}{\normalfont\itshape}
+\end{inputex}
+
+%互換性のための、旧コマンドを定義するため
+\begin{inputex}
+\DeclareOldFontCommand{\cmd}{text-switch}{math-switch}
+\DeclareOldFontCommand{\it}{\normalfont\itshape}{\mathit}
+\end{inputex}
+
+% 数式はまた別の方式で処理されます
+% 数式中に登場する数学記号は演算子、関係子、区切り記号、などなど色々あり
+% それらの間の空きを微妙に調整する処理が必要になるためです
+
+
+\subsection{フォント属性}
+\begin{description}
+ \item[エンコード] うーん、
+ \item[ファミリー] ほげほげ。
+ \item[シリーズ] ほげほげ。
+  さらにウェイト（weight）とウィドゥス（width）に分類される。
+ \item[シェイプ] ほげほげ。
+ \item[サイズ] ほげほげ。
+\end{description}
+
+\C{symbol}コマンドで全てにアクセスできる（欧文なら）。
+
+Computer Modern: CMフォントのファミリー。
+\begin{description}
+ \item[ローマン] cmr
+ \item[サンセリフ] cmss
+ \item[タイプライタ] cmtt
+\end{description}
+CM数式フォントのファミリー。
+\begin{description}
+ \item[math italic] cmm
+ \item[数学記号] cmsy
+ \item[拡張数学記号] cmex 
+\end{description}
+
+\paragraph{ウェイト} \mbox{}
+
+
+%\IOmargin\begin{tabular}{ccccccccc}
+% ultra light & extra light& light& semi light& medium& semi bold& bold& 
+% extra bold& ultra bold\\
+% ul & el& l& sl& m& sb& b& eb& ub\\
+%\end{tabular}\IOlabel
+
+
+\paragraph{ウィドゥス} \mbox{}
+
+uc, ec, c, sc, m, sx, x, ex, ux
+
+\paragraph{シェイプ} \mbox{}
+
+n, it, sl, sc, ul
+
+\paragraph{サイズ} \mbox{}
+
+pt, Q 
+
+%INDEX 字送り じおくり
+実際には\Z{字送り}（\Z{ベースラインスキップ}）の幅も指定しなければならない。
+
+\begin{Syntax}
+\C{encodedefault}  (OT1)\\
+\C{familydefault}  (\C{rmdefault})\\
+\C{seriesdefault}  (m)\\
+\C{shapedefault}   (n)
+\end{Syntax}
+
+ファミリでは
+\begin{Syntax}
+\C{\rmdefault} cmr\\
+\C{\sfdefault} cmss\\
+\C{\ttdefault} cmtt
+\end{Syntax}
+
+AdobeのPSフォントでは\Z{タイムズ}、\Z{ヘルベチカ}、\Z{クーリエ}の
+書体がそれぞれptm, pnv, pcrだが、次のように定義するとどうなるか。
+\begin{inputex}
+\renewcommand\rmdefault{ptm}
+\renewcommand\sfdefault{pnv}
+\renewcommand\ttdefault{pcr}
+\end{inputex} 
+実は\Y{times}パッケージと同じ。
+
+\begin{inputex}
+\renewcommand\familydefault{\sfdefault}	
+\end{inputex}
+とするとどうなるか。
+
+\begin{Syntax}
+\C{fontencoding}  \\
+\C{fontfamily}  \\
+\C{fontseries}  \\
+\C{fontshape}  \\
+\C{fontsize}  
+\end{Syntax}
+これらがさらに
+\begin{Syntax}
+\C{f@encoding}  \\
+\C{f@family}  \\
+\C{f@series}  \\
+\C{f@shape}  \\
+\C{f@size}   \\
+\C{f@baseilneskip}
+\end{Syntax}
+
+実際には \C{familyencoding} や \C{fontfamily} を
+変更しても書体が選択されない。その雰囲気を \C{selectfont}
+の定義から考えてください。
+\begin{inputex}
+\DeclareRobustCommand\selectfont{%
+...	
+\end{inputex}
+
+さて、それでは一度書体を標準の設定に戻す \C{normalfont} コマンドは
+どのような定義であるべきでしょうか。
+\begin{inputex}
+\DeclareRobustCommand\normalfont{\usefont 
+  \encodingdefault \familydefault \seriesdefault \shapedefault \relax}
+\let\reset@font\normalfont	
+\end{inputex}
+さて、最後の \C{relax} が必要な理由と、頑丈に定義している理由も考えてく
+ださい。展開された状態で、その次に普通の文字列がきたら？
+
+
+
+
+\begin{Exe}
+\C{usefont} について理解してください．\C{usefont} は
+四つの引数を取ります．その四つはそれぞれ何でしょうか．
+
+エンコーディング」「ファミリ」「シリーズ」「シェイプ」となります． 
+\end{Exe}
+
+
+
+\begin{Exe}
+\C{usefont} の役割を考えると \C{normalfont} は
+何をする命令でしょうか．NFSSの選択機構を考えて自分で
+同じような命令を定義してみてください．解はおおむね
+次のようになります． 
+\begin{inputex}
+\DeclareRobustCommand\normalfont{\usefont
+  \encodingdefault
+  \familydefault
+  \sariesdefault
+  \shapedefault
+  \relax}
+\let\reset@font\normalfont 
+\end{inputex}
+\C{normalfont}で最後に\C{relax}が必要な理由を考えてください．
+\C{usefont}で選択されたフォントは例えば次のように展開されます．
+\begin{inputex}
+\usefont\encodingdefault\familydefault\sariesdefault\shapedefault
+\end{inputex}
+ならば\verb|\OT1/cmr/m/n/10|など．
+\end{Exe}
+
+
+\section{書体}
+%INDEX 字形 じけい
+%INDEX 文字配置 もじはいち
+{\TeX}は組版処理を行っているときに、使われてる書体の解像度や
+\Z{グリフ}（\Z{字形}）を一切気にかけていません\footnote{最近の
+PDF\TeX などはこの限りではないかもしれません。}。このような
+処理方法にすると、解像度などに依存しない、いわゆるデバイス非依存の
+仮想的なページを技術することが可能になります。これがいつも目にしている
+DVI形式のファイルとなるわけです。さて、では{\TeX}が書体のどの情報を
+使いページを組んでいるのでしょうか。それは\Z{文字配置}（font metrics）
+という情報が記載された\Z{TFM}（\TeX\ font metric）ファイルと呼ばれるものです。
+和文書体の場合は\Z{JFM}（Japanese Font metric）となります。このTFM/JFM
+ファイルには以下の情報がおおむね記載されています。
+\begin{itemize}
+ \item その書体に含まれる各文字の幅（width）。
+ \item その書体に含まれる各文字の高さ（height）。
+ \item その書体に含まれる各文字の深さ（depth）。
+ \item その書体の中での文字間のカーニング値（kerning）。
+ \item 合字情報（）。
+ \item イタリック補正値（）。
+\end{itemize}
+和文の場合は、これに若干色がつきますが、今は考慮する必要はないでしょう。
+
+
+\section{空白とグレー}
+
+\subsection{字間}
+\begin{quote}
+字間、文字間、ワードスペース、ワードスペーシング。
+\end{quote}
+
+いわゆる最近多いベタ組み、最悪です、あれは。
+欧米ではレタースペーシングと呼ばれています。
+
+決定要因は非常に多く、可読性と視認性の両方を満足しなければ
+いけません。例えば
+\begin{quote}
+書体、フォントサイズ、判型、版面、文章量、文章の特性
+\end{quote}
+などが考えられますが、ほかにも多くの考慮すべき項目があります。
+詳しくは\emph{Grid}を読んでください。
+
+\subsection{語間}
+
+\begin{quote}
+語間、単語間、ワードスペース、ワードスペーシング。
+\end{quote}
+
+\subsection{行間}
+いわゆる「グレー」と呼ばれる、全体の雰囲気を決定する空白です。
+これが狭ければ版面は濃いグレーになりますし、広ければ薄い
+グレーになり、印象は軽くなります。
+
+\begin{quotation}
+この範囲の話は前編『好き好き\LaTeXe 初級編』と重複する部分も
+あるので、もう少しまとめておこうと思います。
+\end{quotation}
+
+\subsection{グレー}
+
+さて、ここでページの印象を決めるグレーについて定義しましょう。
+人間は本を読むときにそのページ全体を長い時間見つめます。
+1行あたりの行の長さを$l_w$、1ページ辺りの高さ（1行の高さと余白を
+含む）を$l_h$とします。横書きの場合のグレー率$G$は、1行辺り
+に使用されている漢字の存在確率を${p}_k$、1行辺りに使用さ
+れている仮名文字の存在確率を${p}_j$、ベースライン以上の文
+字の高さを$\bar{h}$、文字の幅（アルファベットなどの英数字を除
+く）を$\bar{w}$、字送りを$s_c$、行送りを$s_b$とすると式
+~\ref{eq:gray}となります（かなり適当ですから当てにしないでください）。
+\begin{eqnarray}
+ G & = & l_w l_h - \ldots
+% \left\{ l_w(s_b-\bar{h})(\frac{l_h}{s_b}-1) - \nonumber \right.\\
+% & = & \left.
+%  \left[ s_c\bar{h} 
+%   \left( \frac{l_w+s_c}{\bar{w}+s_c} -s_c \right) -  \frac{1}{2}
+%    \bar{w}\bar{h}(\alpha{p_k}+\beta{p_j})\frac{l_w+s_c}{\bar{w}+s_c}
+%  \right]
+%  \frac{l_h}{s_b}
+% \right\}
+\label{eq:gray}
+\end{eqnarray}
+バーがついている値はそれぞれ平均値を表し、
+変数$\alpha$は平均的に漢字が紙面を塗りつぶす領域、
+$\beta$はその平仮名の場合です。例えば（創造したくもありませんが）
+ゴシック体を本文に使っている場合は$\alpha$と$\beta$の値が
+非常に高くなります（ウェイトの大きい書体の場合も同様）。
+
+もちろん句読点やその他の記号、また欧文などの多言語が混入した
+場合はさらにパラメータが変化します。
+
+もし、漢字と平仮名の間で幅や高さが違う場合は、文字の幅と高さが
+パラメータ$\bar{w}$と$\bar{h}$だけではなくなります。
+
+
+\section{書体あれこれ}
+文字は何千年も用いられている媒体（メディア）であり、他のメディアに
+比べて非常に洗練されており、正確性が高いものとなっています。
+それぞれのメディアには各々の特徴があります。電話というメディアには
+同期や双方向性などの特徴があります。文字には双方向性や同期は
+ありませんが、きちんとした手順を踏めば情報の正確性が向上します。
+
+「洗練されている」といっても、それは一つ一つの字形が洗練されている
+だけで、文字を一つの文書に{どのように}配置するかについては、編集
+者のセンスに任されているのが現状です。
+
+それもそのはずで、文書に存在する全ての文字をどのように配置するかと
+いう問題は次の考慮すべき項目を含んでいるためです。
+\begin{description}
+\item[書体]
+ 一連の字形に用いられている文字の様式。
+ その言語の文化や、その文書の歴史を反映するものでもある。
+ デバイス依存の部分で{\TeX}が直接的に関与することが難しい。 
+ 歴史的文書の場合はその当時使われていた手書きの書体に似たものを
+ 使うこともある。
+\item[フォントサイズ]
+ 書体の大きさ。
+\item[判型]
+ 用紙の大きさ。経済的問題、技術的問題も関与している。
+\item[マージン]
+ 用紙の左右上下の端に存在する文字が何も書かれていない領域。
+ 絵画で言えば額縁にあたる重要な部分。用紙と文章の境界を表す。
+\item[版面]
+ 判型から左右上下のマージンを差し引いた実際の文章領域 (type area)。
+\item[文章量]
+ 一つの文書に含まれる文字の数。
+\item[文章の特性]
+ 平仮名の多い文章か、漢字の多い文章か、図と文章が密接に絡み合っている
+ かなどの特性。
+\end{description}
+ほかにも紙媒体として作成するときの考慮すべき点が沢山あります。
+\begin{description}
+ \item[印刷方式] 
+ 凸版、凹版、平板など。今はオフセット印刷による平板が主流。
+ \item[インク] 
+ インクの色、粘り強さ、品質など。
+ \item[紙] 
+ 書籍の場合はこの紙が重要で、耐久性があるかどうか、
+ 光沢があるかどうかも問題となる。
+ \item[装丁] 
+ 実際に人間が手にとって読むときに読みやすいかどうか。
+\end{description}
+
+\section{現代のアウトラインフォントが抱える問題点}
+
+\subsection{リニアスケーリング}
+%INDEX 単純幾何学変換 たんじゅんきかがくへんかん
+%INDEX 視覚的調整 しかくてきちょうせい
+そもそも各フォントサイズに合わせてデザインされるべきフォントが、昨今の
+流れでは、あるサイズ（たとえば10\,pt)用にデザインした字形を、全てのサイズ
+に適用しています。Knuthはこのような\Z{リニアスケーリング}（色々呼び方があり
+ますが、ここでは\Z{単純幾何学変換}と呼ぶことにしましょう）の手法ではなく、
+きちんとサイズごとのフォントをデザインしています（これを\Z{オプティカルス
+ケーリング}、\Z{視覚的調整}と呼ぶことにしましょう。{\LaTeX}でも同様に、
+あるフォントを何倍して文章中で用いる、という方針ではなく、現在のフォント
+のある固定倍で拡大したサイズ（\C{large}とか\C{tiny}など）が用いられ
+ているのは、このような理由もあるからです（処理の都合上、DIN規格のA配列は
+数字が一つ増えるごとに$(\sqrt{2})^{-1}$倍されるので、フォントサイズもおお
+よそその倍数のサイズがあると非常に都合がよいのです）。
+
+そのフォントの種類に関わらずある文字を単純に一次変換しただけでは、
+つまり過ぎたり、あきすぎたりすることは自明のことです（サイズごと
+にフォントを変えたのは可読性を追求したKnuthの最適な選択だと思われます）。
+
+まず、図~\ref{fig:hoge}にKnuthがデザインしたフォントを示します。
+\newcommand*\yama[1]{\font\hoge=#1 at 20pt\relax
+  \hoge #1\ Computer typesetting\par}
+\begin{figure}[htbp]
+ \yama{cmr5}
+ \yama{cmr6}
+ \yama{cmr7}
+ \yama{cmr8}
+ \yama{cmr9}
+ \yama{cmr10}
+ \yama{cmr12}
+ \yama{cmr17}
+\caption{各サイズ用にデザインされたComputer Modernフォント}
+\label{fig:hoge}
+\end{figure}
+図~\ref{fig:hoge}ではそれぞれのフォントを分かりやすいように20\,ptに
+拡大しています。
+
+相当手間隙をかけて作成された\Hito{Young Ryu}の\txfonts では
+すべてのサイズに同じフォントが使われます（これは\txfonts に
+限った話ではありませんが、どうもPalatinoやTimesを好き好んで
+使う人たちがいるので）。これは\Fl{ot1txr.fd}（または\Fl{t1txr.fd}）
+などをみると次のようにすべてのサイズに同じフォントを使うように
+なっています。
+\begin{inputex}
+\DeclareFontShape{OT1}{txr}{m}{n}{<->txr}{}
+\end{inputex}
+
+標準の\LaTeX\ の場合は次のようになります（\Fl{ot1cmr.fd}によります）。
+\begin{inputex}
+\DeclareFontShape{OT1}{cmr}{m}{n}%
+     {<5><6><7><8><9><10><12>gen*cmr%
+      <10.95>cmr10%
+      <14.4>cmr12%
+      <17.28><20.74><24.88>cmr17}{}	
+\end{inputex}
+この場合はなぜか、5--10\,ptと12\,ptに\Fl{cmr.*}が、
+10.95\,ptに\Fl{cmr10.*}が、14.4\,ptに\Fl{cmr12.*}などが
+使われるようになります。
+個人的にこの定義が好きではないので、次のようにすることも
+あります。ただし、この場合はPSファイルやPDFに埋め込むべき
+フォントが増えます（本当の本作りをしている場合は、下の
+定義のようなことも配慮すべきでしょう）。
+\begin{inputex}
+\DeclareFontShape{OT1}{cmr}{m}{n}{%
+        <-6>    cmr5
+        <6-7>   cmr6
+        <7-8>   cmr7
+        <8-9>   cmr8
+        <9-10>  cmr9
+        <10-12> cmr10
+        <12-17> cmr12
+        <17->   cmr17}{}	
+\end{inputex}
+これと同じことが\Y{type1cm}パッケージで行われています。
+この場合、システムにそれぞれのサイズのTrue Typeフォント
+（Postscript Binary形式フォント）が導入されている必要が
+あるでしょう（BlueSky/Y\&Yが配布しているものを使うと良い
+でしょう）。
+
+%\HO{T1}エンコーディングだと、次のようになってしまいます。
+%\begin{inputex}
+%\DeclareFontShape{T1}{cmr}{m}{n}%
+%  {<5><6><7><8><9><10><10.95><12><14.4>%
+%  <17.28><20.74><24.88><29.86><35.83>genb* ecrm}{}}
+%\end{inputex}
+
+ためしに視覚的調整されたComputer Modern Romanフォントと
+単純に幾何学一次変換を施したTimes Romanを見比べてください。
+%
+%人間の目は幾何学にはなりません。なぜなら眼球が二つもあるので
+%絶対に像が歪んだり、広がったりするのですから。
+%フォントデザインが最終的には人間の眼で仕上げされるのは、人間の
+%視覚の原理に基づくこのなのです（この視覚による歪みを、
+%何らかのフィルタ関数にするような研究も面白いでしょう）。
+%
+\newcommand*\yam[1]{\font\hoge=#1\relax
+  \hoge #1\ Typeface \hfil}
+\newcommand*\may[1]{\font\hoge=#1\relax\hoge#1\ Typeface\par}
+\begin{figure}[htbp]
+\begin{center}
+ \begin{tabular}{ll}
+\hline
+ \yam{cmr5}  &\may{txr at 5pt}\\
+ \yam{cmr6}  &\may{txr at 6pt}\\
+ \yam{cmr7}  &\may{txr at 7pt}\\
+ \yam{cmr8}  &\may{txr at 8pt}\\
+ \yam{cmr9}  &\may{txr at 9pt}\\
+ \yam{cmr10} &\may{txr at 10pt}\\
+ \yam{cmr12} &\may{txr at 12pt}\\
+ \yam{cmr17} &\may{txr at 17pt}\\
+\hline
+ \end{tabular}
+ \caption{Computer Modern RomanとTimes Roman}\label{fig:hoge2}
+\end{center}
+\end{figure}
+フォントサイズが小さくなると当然のように太くなります。
+さらに幅が狭く感じます。CMの方ではサイズが小さくなるにつれて
+幅広で細く (light) になります。大きくなると感覚的には「引き締まった
+感じ」になります、要するに広がり過ぎないように、太り過ぎないように
+なっています（例では分かりませんが、6\,pt以下？のフォントには合字が
+使われていません、小さいフォントや太いフォントで合字を使うと視認性が
+悪くなるので）。Times Romanを単純幾何学変換しただけではフォントサイズが
+大きくなると太りすぎですし、引き締まった感じもありません（Times Roman
+は良いフォントなのですが、このようにリニアスケーリングにすると無様に
+見えてしまいます）。
+
+（ベースがきちんとしているので）実は個人的にはLatin Modernが
+お気に入りだったりします（本当はMinionが一番です、とか言ってみたり）。
+
+まぁ、特に不都合がなければプリアンブルに
+\begin{inputex}
+\usepackage{type1cm}
+\end{inputex}
+という記述か、好みに応じて
+\begin{inputex}
+\usepackage{lmodern}
+\end{inputex}
+と書くと、視覚的調整されたフォントがサイズごとに用いられるように
+なります。記述を省略したときの結果を見比べてください（\LaTeX\ では
+多くの人間を対象とするので標準的な設定になっているので、ローカルでの
+最適な設定になっていない部分もあります、特にデバイス依存な部分）。
+
+
+\section{ハイフン}
+%INDEX 連字符 れんじふ
+%INDEX 複合語 ふくごうご
+\Z{ハイフン}は通常和文のみには使われることのない記号で
+す（ダッシュと混同しないようにしましょう）。
+ハイフンは\Z{連字符}の働きをし\Z{複合語}や、行頭・行末の揃
+えにも使われています。欧文のハイフンは次のようにエックス・ハ
+イト (ex) の中央に来るように設計されています。
+\[
+ \mbox{x-x, Future-University, A-B-C, p-q-g, H-H}
+\]
+ただし、大文字の間に混入する場合は天地（ボディ $+$ アセンダー）
+の中央に移動するように調整しておきましょう。さらに左右に
+シンスペース\verb|\,|程度を挿入すると良いそうです。
+\begin{inputex}
+NKH-Hakodate $\neq$ NKH\lower-.2ex\hbox{-}Hakodate
+$\neq$ NKH\,\lower-.2ex\hbox{-}\,Hakodate
+\end{inputex}
+\begin{quote}
+NKH-Hakodate $\neq$ NKH\lower-.2ex\hbox{-}Hakodate
+$\neq$ NKH\,\lower-.2ex\hbox{-}\,Hakodate
+\end{quote}
+
+文字`H'のみを考慮するならば次のようなマクロも書けるでしょう。
+\begin{inputex}
+\makeatletter
+\newcommand*{\hh}[1][H]{%
+  \setlength\@tempdima{#1}%
+  \@tempdima=0.5\@tempdima
+  \advance\@tempdima-0.5ex
+  \advance\@tempdima-0.2pt
+  \lower-\@tempdima\hbox{-}}
+\makeatother
+\end{inputex}
+全てのアルファベット大文字と全ての数字は、
+アッセンダいっぱいの高さがあることになっています。そのため、
+このマクロはアルファベット大文字と数字の組み合わせならば、
+なんにでも使えるはずです。他のアルファベット小文字と大文字が
+混同する場合などは、小文字を優先し、調整しないほうが無難です。
+ハイフンの両側の文字がアッセンダいっぱいの時のみにしましょう
+（アルファベットは都合の良いことに、小文字の場合は字形の重心が
+ボディの中心に、大文字の場合は高さの中心になるようにデザイン
+されています。いや、エックスハイトの1/2かもしれません）。
+\begin{center}
+ \begin{small}
+  \hrule height .2pt\par
+  ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 01234567890
+  \par\hrule height .2pt
+ \end{small}
+\end{center}
+
+しかし、実際には使用している書体がどのようにデザインされているのか
+を把握することも重要であり、その書体に合わせたハイフンの適切な位置を
+調整する必要があります（書体によってそれぞれのグリフが異なるため）。
+
+\chapter{数式}
+
+\section{米国数学会の提供するマクロ}
+
+\clearpage
+\subsection{\textsf{amsmath}パッケージの中身}
+\sty
+{\AmSLaTeX}には数式記述に関するマクロパッケージ
+\Y{amsmath}や，{\LaTeX}では用意されていない
+\Z{AMSFonts}などが含められています．
+\Y{amsmath}パッケージの中では
+\begin{description}
+\item[\Y{amsbsy}] 
+  数式を太字にする\C{boldsymbol}を使うための命令が定義されている．
+\item[\Y{amstext}] 
+  数式中で文章を出力する\C{text}命令が定義されている．
+\item[\Y{asmcd}]  
+ ダイヤグラムを描くための\E{CD}環境が定義されている．
+\item[\Y{amsopn}]
+  新規に演算子を定義するための\C{DeclareMathOperator}
+  命令が定義されている．
+\item[\Y{amsxtra}]
+  その他のコマンドが定義されている．
+\end{description}
+の5つのパッケージが自動的に読み込まれます．そのため
+\sty{amsmath}を読み込んでおけばこれらのパッケージを
+読み込む必要はありません．
+
+\sty{amsmath}パッケージのパッケージオプションとしては
+以下のオプションが使用できます．
+\begin{description}
+\item[\Option{centertags}] 
+\item[\Option{tbtags}] 
+\item[\Option{sumlimits}] 
+\item[\Option{nosumlimits}] 
+\item[\Option{intlimits}] 
+\item[\Option{nointlimits}] 
+\item[\Option{namelimits}] 
+\item[\Option{nonamelimits}] 
+\item[\Option{leqno}] 
+\item[\Option{ceqno}] 
+\item[\Option{fleqn}] 
+\end{description}
+
+%\section{この章は未完成です}
+%高度な数式の組版に関してはまだまだ調査が足りないので
+%この章はまだ完成しそうにありません．
+%
+%そのため高度な数式の組版を行いたい方は
+%以下の文献を参照してください．
+%
+%\begin{mybibliography}{9}
+% \bibitem{bib:math:Oda} 小田忠雄. 数学の常識・非常識\zdash 由緒正しい
+% {\TeX}入力法. 
+% \url{http://www.math.tohoku.ac.jp/oda_tex/oda_tex.pdf}
+% ウェブ上で無料で入手できるマニュアルです．とても参考に
+% なりますので，ご一読ください．
+% \bibitem{bib:math:shortguide} 
+% Michael Downes. \emph{Short Math Guide for {\LaTeX}}. 
+% \url{http://www.ams.org/tex/short-math-guide.html}\par
+% 英語ですが\sty{amsmath}などの解説を含むマニュアルです．
+%\setcounter{enumiv}{0}
+%\end{mybibliography}
+%
+%他にもいろいろと文献がありますので付録~\ref{chap:info}な
+%どの書籍を参照してください．
+
+\chapter{出版編}
+
+
+\section{索引}
+索引の選定基準方法は例えば次のようにします．
+\begin{enumerate}
+\item 人名，事実，概念，その文書特有の考え方などを
+      把握する．
+\item どのような語を索引に追加するのかを決める．JISの
+      業界別用語などを参考にする．
+\item 読者が本当にその語を引くかどうかを検討する．
+\item 索引に追加した語と同じ概念も追加する．
+      例えば著者にとって\yo{インストール}という概念で
+      事項を検索しようと思ってもある読者は\yo{導入}と
+      いう語で引くかもしれない．
+\end{enumerate}
+
+{\LaTeX}で索引作成を実現する方法は次のようになります．
+\begin{enumerate}
+ \item プリアンブルに\verb|\{usepackage}{makeidx}|を書く．
+ \item プリアンブルに\verb|\makeindex|命令を書く．
+ \item 原稿の中で\verb|\index|命令を使い索引を追加する．
+ \item 索引を出力したい場所に\C{printindex}命令を書く．
+ \item タイプセットをして\Va{file}{idx}に並べ替えられてい
+       ない索引語を出力する．
+ \item \prog{MakeIndex}プログラムを実行して，\Va{file}{idx}
+       の索引語を並べ替えて\Va{file}{ind}に出力する．
+ \item もう一度タイプセットを行い\Va{file}{ind}を
+       \C{printindex}により読み込む．
+\end{enumerate}
+
+索引の形態には次のようなものがあります．
+\begin{itemize}
+ \item 語の階層的な概念．
+ \item ページ範囲．
+ \item 相互参照．
+ \item 読みと出力の違い．
+\end{itemize}
+
+%壊れやすいコマンドは展開されてしまうので
+%\C{protect}を使うと良いでしょう．
+
+\subsection{{mendex}のコマンドラインオプション}
+
+\begin{description}
+\item[\copt{-l}] 索引語の並び替えを文字順に行う．
+		 標準は単語順．
+\item[\copt{-q}] 処理状況をあまり表示しない．
+\item[\copt{-c}] スペースやタブが連続しても1つとしてみなす．
+\item[\copt{-g}] 日本語の頭文字を\yy{あかさ…わ}にします．
+		 標準は\yy{あいうえ…わをん}です．
+\item[\copt{-s} \va{sty}] スタイルファイルを\va{sty}
+		 から読み込みます．何も指定しなければ
+		 標準のスタイルを使います．
+\item[\copt{-d} \va{dic}] \va{dic}を辞書ファイルとして
+		 読み込みます．
+\item[\copt{-o} \va{ind}] 成形後のファイルの出力先をです．
+\item[\copt{-t} \va{log}] 処理結果を出力するファイル名を
+		 指定します．標準であれば\Va{file}{ilg}
+		 に出力します．
+\end{description}
+
+%\indindz{スタイルファイル}{索引の}\Z{スタイルファイル}の変更．
+%\verb|%|以降はコメントと見なされる．
+%
+%\va{文字}は任意の1文字であって\va{文字列}は複数の文字からなります．
+% 
+%入力ファイルスタイルパラメータ
+%\begin{comment}
+%\begin{description}
+% \item[\str{keyword} \va{文字列}]\hfill\verb|"\\indexentry"|\\
+%ほげ．
+% \item[\str{arg_open} \va{文字}] \hfill \verb|'{'|\\
+%ほげ．
+% \item[\str{arg_close} \va{文字}] \hfill \verb|'}'|\\
+%ほげ．
+% \item[\str{range_open} \va{文字}] \hfill \verb|'('|\\
+%ほげ．
+% \item[\str{range_close} \va{文字}] \hfill \verb|')'|\\
+%ほげ．
+% \item[\str{level} \va{文字}] \hfill \verb|'!'|\\
+%ほげ．
+% \item[\str{actual} \va{文字}] \hfill \verb|'@'|\\
+%ほげ．
+% \item[\str{encap} \va{文字}] \hfill \verb|'|'|\\
+%ほげ．
+% \item[\str{page_compositor} \va{文字列}]\hfill\verb|"-"|\\
+%ほげ．
+% \item[\str{page_precedence} \va{文字列}]\hfill\verb|"rnaRA"|\\
+%ほげ．
+% \item[\str{quote} \va{文字}] \hfill \verb|'"'|\\%"
+%ほげ．
+% \item[\str{escape} \va{文字}] \hfill \verb|'\\'|\\%"
+%ほげ．
+%\end{description}
+%\end{comment}
+%\begin{comment}
+%   keyword  <文字列>
+%      "\\indexentry"
+%      索引エントリを引数として持つコマンド．
+%
+%   arg_open  <文字>
+%      '{'
+%      索引エントリ文字列開始を表す文字．
+%
+%   arg_close  <文字>
+%      '}'
+%      索引エントリ文字列終了を表す文字．
+%
+%   range_open  <文字>
+%      '('
+%      ページ範囲の開始を示す文字．
+%
+%   range_close  <文字>
+%      ')'
+%      ページ範囲の終了を示す文字．
+%
+%   level  <文字>
+%      '!'
+%      従属レベルであることを示す文字．
+%
+%   actual  <文字>
+%      '@'
+%      このシンボルに続く文字列が実際の索引文字列として出力ファイルに書かれる．
+%
+%   encap  <文字>
+%      '|'
+%      このシンボルに続く文字列が，ページ番号に付くコマンド名として使われる．
+%
+%   page_compositor  <文字列>
+%      "-"
+%      階層化されたページ番号における階層間の区切り文字．
+%
+%   page_precedence  <文字列>
+%      "rnaRA"
+%      ページ番号の記法の優先順位．'R'および'r'はローマ数字，'n'はアラビア数字，
+%      'A'および'a'はアルファベットによる記法を表す．
+%
+%   quote  <文字>
+%      '"'
+%      mendex のパラメータ文字に対するエスケープキャラクタ．%"
+%
+%   escape  <文字>
+%      '\\'
+%      一般的な文字に対するエスケープキャラクタ．
+%
+% 出力スタイルパラメータ
+%
+%   preamble  <文字列>
+%      "\\begin{theindex}\n"
+%      出力ファイルの文字列．
+%
+%   postamble  <文字列>
+%      "\n\n\\end{theindex}\n"
+%      出力ファイルの末尾の文字列．
+%
+%   setpage_prefix  <文字列>
+%      "\n  \\setcounter{page}{"
+%      開始ページを設定するときの，ページ番号の前に付ける文字列．
+%
+%   setpage_suffix  <文字列>
+%      "}\n"
+%      開始ページを設定するときの，ページ番号の後に付ける文字列．
+%
+%   group_skip  <文字列>
+%      "\n\n  \\indexsapce\n"
+%      新項目(頭文字)の前に挿入する縦スペースを表す文字列．
+%
+%   lethead_prefix  <文字列>
+%      ""
+%      頭文字の前に付けるコマンド文字列．
+%
+%   heading_prefix  <文字列>
+%      ""
+%      lethead_prefixと同じ．
+%
+%   lethead_suffix  <文字列>
+%      ""
+%      頭文字の後に付けるコマンド文字列．
+%
+%   heading_suffix  <文字列>
+%      ""
+%      lethead_suffixと同じ．
+%
+%   lethead_flag  <文字列>
+%      0
+%      頭文字の出力のフラグ．0のとき出力しない．0より大きいときは英字を大文字で，
+%      0より小さいときは小文字で出力する．
+%
+%   heading_flag  <文字列>
+%      0
+%      lethead_flagと同じ．
+%
+%   item_0  <文字列>
+%      "\n  \\item "
+%      主エントリ間に挿入するコマンド．
+%
+%   item_1  <文字列>
+%      "\n     \\subitem "
+%      サブエントリ間に挿入するコマンド．
+%
+%   item_2  <文字列>
+%      "\n       \\subsubitem "
+%      サブサブエントリ間に挿入するコマンド．
+%
+%   item_01  <文字列>
+%      "\n    \\subitem "
+%      主〜サブエントリ間に挿入するコマンド．
+%
+%   item_x1  <文字列>
+%      "\n    \\subitem "
+%      主〜サブエントリ間に挿入するコマンド．(主エントリにページ番号がないとき)
+%
+%   item_12  <文字列>
+%      "\n    \\subsubitem "
+%      サブ〜サブサブエントリ間に挿入するコマンド．
+%
+%   item_x2  <文字列>
+%      "\n    \\subsubitem "
+%      サブ〜サブサブエントリ間に挿入するコマンド．(サブエントリにページ番号が
+%      ないとき)
+%
+%   delim_0  <文字列>
+%      ", "
+%      主エントリと最初のページ番号の間の区切り文字列．
+%
+%   delim_1  <文字列>
+%      ", "
+%      サブエントリと最初のページ番号の間の区切り文字列．
+%
+%   delim_2  <文字列>
+%      ", "
+%      サブサブエントリと最初のページ番号の間の区切り文字列．
+%
+%   delim_n  <文字列>
+%      ", "
+%      ページ番号間の区切り文字列．どのエントリレベルにも共通．
+%
+%   delim_r  <文字列>
+%      "--"
+%      ページ範囲を示すときの，ページ番号間の区切り文字列．
+%
+%   delim_t  <文字列>
+%      ""
+%      ページ番号のリストの終端に出力する文字列．
+%
+%   suffix_2p  <文字列>
+%      ""
+%      ページ番号が2ページ連続する場合に，delim_n と2ページ目の番号の代わりに
+%      付加する文字列．
+%      文字列が定義されている場合にのみ有効．
+%
+%   suffix_3p  <文字列>
+%      ""
+%      ページ番号が3ページ連続する場合に，delim_r と3ページ目の番号の代わりに
+%      付加する文字列．suffix_mp より優先される．
+%      文字列が定義されている場合にのみ有効．
+%
+%   suffix_mp  <文字列>
+%      ""
+%      ページ番号が3ページまたはそれ以上連続する場合に，delim_r と末尾のページ
+%      番号の代わりに付加する文字列．
+%      文字列が定義されている場合にのみ有効．
+%
+%   encap_prefix  <文字列>
+%      "\\"
+%      ページ番号にコマンドを付けるときの，コマンド名の前に付ける文字列．
+%
+%   encap_infix  <文字列>
+%      "{"
+%      ページ番号にコマンドを付けるときの，ページ番号の前に付ける文字列．
+%
+%   encap_suffix  <文字列>
+%      "}"
+%      ページ番号にコマンドを付けるときの，ページ番号の後に付ける文字列．
+%
+%   line_max  <数値>
+%      72
+%      1行の最大文字数．それを超えると折り返す．
+%
+%   indent_space  <文字列>
+%      "\t\t"
+%      折り返した行の頭に挿入するスペース．
+%
+%   indent_length  <数値>
+%      16
+%      折り返した行の頭に挿入されるスペースの長さ．
+%
+%   symhead_positive  <文字列>
+%      "Symbols"
+%      lethead_flag または heading_flag が正数の場合に数字・記号の頭文字として
+%      出力する文字列．
+%
+%   symhead_negative  <文字列>
+%      "symbols"
+%      lethead_flag または heading_flag が負数の場合に数字・記号の頭文字として
+%      出力する文字列．
+%
+%   symbol  <文字列>
+%      ""
+%      symbol_flag が0でない場合に，数字・記号の頭文字として出力する文字列．
+%      文字列が定義されていれば，symhead_positive および symhead_negative より
+%      優先される．(mendex専用)
+%
+%   symbol_flag  <数値>
+%      1
+%      symbol の出力フラグ．0のとき出力しない．(mendex専用)
+%
+%   letter_head  <数値>
+%      1
+%      日本語の頭文字の出力のフラグ．0のとき出力しない．1のときカタカナ，2のとき
+%      ひらがなで出力する．(mendex専用)
+%
+%   priority  <数値>
+%      0
+%      英字と日本語との混在した索引語のソート方法についてのフラグ．0でなければ
+%      英字と日本語とのあいだに半角スペースを入れた状態でソートする．(mendex専用)
+%
+%   character_order  <文字列>
+%      "SEJ"
+%      記号，英字，日本語の優先順位．'S'は記号，'E'は英字，'J'は日本語を表す．
+%      (mendex専用)
+%
+%
+% 日本語の扱いについて
+%
+%  mendex は日本語の索引をできるだけ楽に扱えるようになっています．
+%  makeindex では日本語の索引が正しく辞書順にソートするためにはひらがなまたはカタ
+% カナに揃え，拗音，撥音，濁点を除いた読みを付けなければなりませんでした(自動的に
+% 揃えるバージョンもある)．
+%  mendex ではカナについてはすべて自動的に揃え，また漢字については辞書ファイルを
+% 設定することにより各索引語ごとに読みを付ける作業をかなり解消できます．
+%
+%  以下に内部でのカナの変換例を示します．
+%
+%   かぶしきがいしゃ     かふしきかいしや
+%   マッキントッシュ     まつきんとつしゆ
+%   ワープロ             わあふろ
+%
+%  辞書ファイルは <熟語  読み> のリストで構成されます．熟語と読みの区切りはタブま
+% たはスペースです．
+%
+%  以下に辞書の例を示します．
+%
+%   漢字     かんじ
+%   読み     よみ
+%   環境     かんきょう
+%   α       アルファ
+%
+%  辞書に登録する熟語は，読み方が1通りになるよう送り仮名を付けてください．
+%  「表」，「性質」のように送り仮名によらず2通りの読み方ができる語についてはどち
+% らか1つしか登録できません．他の読み方については各索引語へ読みを付けることで対応
+% してください．
+%  また，環境変数 INDEXDEFAULTDICTIONARY に辞書ファイルを登録することにより，
+% 自動的に辞書を参照します．環境変数に登録した辞書は -d で指定した辞書と併用できま
+% す．
+%
+%
+% ソート方法について
+%
+%  mendex は通常は入力された索引語をそのままソートします．-l オプションが付けられ
+% た場合，複数の単語で構成される索引語については，ソートするときに単語と単語のあいだの
+% スペースを詰めてソートします．
+%  ここでは前者を単語順ソート，後者を文字順ソートと呼ぶことにします．
+%  文字順ソートの場合，実際に出力される文字列はスペースを含んだ状態のものなので，
+% 索引語自体が変化することはありません．
+%
+%  以下に例を示します．
+%
+%   単語順ソート        文字順ソート
+%    X Window            Xlib
+%    Xlib                XView
+%    XView               X Window
+%
+%  また，日本語〜英字間でも似たようなソート方法があります．スタイルファイルで
+% priority に0以外を指定した場合，隣接した日本語と英字のあいだにスペースを入れてソート
+% します．
+%
+%  以下に例を示します．
+%
+%   priority=0          priority=1
+%    index sort          indファイル
+%    indファイル         index sort
+%
+%
+% 環境変数
+%
+%  mendex では以下のような環境変数を使用しています．
+%
+%   INDEXSTYLE
+%      索引スタイルファイルがあるディレクトリ
+%
+%   INDEXDEFAULTSTYLE
+%      デフォルトで参照する索引スタイルファイル
+%
+%   INDEXDICTIONARY
+%      辞書があるディレクトリ
+%
+%   INDEXDEFAULTDICTIONARY
+%      常に参照する辞書ファイル
+%
+%
+% 詳細について
+%
+%  その他，仕様の詳細については makeindex と同じです．
+%\end{comment}
+%
+%
+%\prog{mendex}のエラーメッセージ
+%
+%\begin{itemize}
+% \item \str{Extra `!' at position ...}
+% \item \str{Extra `@' at position ...}
+% \item \str{Extra `|' at position ... index}
+%\end{itemize}
+%
+%
+%
+%
+%\subsection{索引スタイル}
+%
+%\begin{InText}
+%%File: myind.ist
+%%頭文字の出力を有効にする
+%lethead_flag            1
+%symhead_positive	"数字/記号"
+%delim_0			" \\dotfill\\ "
+%delim_1			" \\dotfill\\ "
+%delim_2			" \\dotfill\\ "
+%lethead_prefix "\n\\underline{\\hbox to \\linewidth{\\large\\textbf{"
+%lethead_suffix "\\hfill}}}\\nopagebreak\n"
+%\end{InText}
+
+\subsection{複数の索引}
+\Y{index}パッケージか\Y{multind}パッケージを使うと簡単です．
+\sty{multind}は少々古いのですが扱いが簡単ですから紹介します．
+プリアンブルで\sty{multind}を\C{usepackage}します．
+最初からある\C{printindex}を少し変更します．
+\begin{inputex}
+\renewcommand{\printindex}[2]{\chapter*{#2}\input{#1.ind}}
+\end{inputex}
+\E{theindex}環境は\Y{multicol}パッケージなどを使って
+定義すると良いでしょう．
+次に\cmd{makeindex}で作りたいだけの索引ファイルを
+指定します．
+\begin{inputex}
+\makeindex{nam} %人名索引
+\makeindex{pro} %プログラム索引
+\makeindex{ind} %概念索引
+\makeindex{var} %変数索引
+\end{inputex}
+あとは文章中でどの索引ファイルに加えるのかを指定して
+\cmd{index}命令を使います．
+\begin{inputex}
+ところで\index{ind}{ほげ}ほげとはなんだろうか．
+私はかねてよりほげに関する論文を書こうと思い，
+ほげの考案者\index{nam}{ななしのごんべえ@名無しの権兵衛}
+名無しの権兵衛氏に連絡を取ろうと試みた．しかし彼は
+すでに不治の病にかかり，プログラム\index{pro}{ほげ}ほげは
+消去されていた．ほげを知るうえでプログラムほげの消失は
+我々にとって大きな存在となった．
+\end{inputex}
+索引を出力したい場所で\C{printindex}を書きます．
+\begin{inputex}
+\printindex{nam}{人名索引}
+\printindex{pro}{プログラム索引}
+\printindex{ind}{概念索引}
+\printindex{var}{変数索引} 
+\end{inputex}
+全ての記述が終わったらタイプセットします．次に端末などから複数の
+索引ファイル分\prog{mendex}などで処理します．
+\begin{InTerm}
+\item mendex -s style.ist nam 
+\item mendex -s style.ist pro
+\item mendex -s style.ist ind
+\item mendex -s style.ist var
+\end{InTerm}
+するとディレクトリには\fl{pro.ind}，\fl{ind.ind}，
+\fl{var}{ind}，\fl{nam}{ind}が作成されますので
+もう1度タイプセットします．これで複数の索引を
+作成できました．
+
+もう1つの方法に\sty{index}パッケージを使う方法も紹介します．
+まずプリアンブルで\cmd{usepackage}で\Y{index}を読みこみます．
+次に\cmd{newindex}命令で作成したい索引を定義します．
+\begin{Syntax}
+\C{newindex}\pa{ラベル}\pa{処理前}\pa{処理後}\pa{見出し}
+\end{Syntax}
+\va{ラベル}には複数の索引を区別するためのラベルを書きます．
+一般的な概念索引の場合はプリアンブルに
+\begin{inputex}
+\newindex{id}{idx}{ind}{索引}
+\end{inputex}
+のようにします．同じように他の索引も次のように定義します．
+\begin{inputex}
+\newindex{nam}{ndx}{nnd}{人名索引} %人名索引
+\newindex{pro}{pdx}{pnd}{プログラム索引} %プログラム索引
+\newindex{var}{vdx}{vnd}{変数索引} %変数索引 
+\end{inputex}
+以上の作業ができたならば\cmd{index}命令に任意引数に
+ラベルを指定して索引を追加します．
+\begin{inputex}
+ところで\index[id]{ほげ}ほげとはなんだろうか．
+私はかねてよりほげに関する論文を書こうと思い，
+ほげの考案者\index[nam]{ななしのごんべえ@名無しの権兵衛}
+名無しの権兵衛氏に連絡を取ろうと試みた．しかし彼は
+すでに不治の病にかかり，プログラム\index[pro]{ほげ}ほげは
+消去されていた．ほげを知るうえでプログラムほげの消失は
+我々にとって大きな存在となった． 
+\end{inputex}
+最後に索引を出力したい場所に\cmd{printindex}命令を
+書きます．
+\begin{inputex}
+\printindex[nam]
+\printindex[pro]
+\printindex[var]
+\printindex[id]
+\end{inputex}
+以上のような記述をしたファイル\fl{file.tex}あるならば
+タイプセットします．これもここの索引ファイルを
+\prog{mendex}などで処理します．
+\begin{InTerm}
+\item mendex -s style.ist -o file.ind file.idx
+\item mendex -s style.ist -o file.nnd file.ndx
+\item mendex -s style.ist -o file.pnd file.pdx
+\item mendex -s style.ist -o file.vnd file.vdx
+\end{InTerm}
+索引の数だけ\prog{mendex}を実行したならば再び
+タイプセットします．
+
+\subsection{用語集}
+用語集も基本的に索引と同じように\prog{mendex}
+で作成すればよいのですが，まず始めに注意すべき
+点は以下の命令が索引の場合とは違います．
+\begin{quote}
+\C{index} $\rightarrow$ \C{glossary}\\%$
+\C{indexentry} $\rightarrow$ \C{glossaryentry}\\
+\E{theindex}環境 $\rightarrow$ \E{theglossary}環境
+\end{quote}
+大抵のクラスファイルにはあらかじめ
+\env{theindex}環境が定義されているので
+すが\env{theglossary}環境は定義されてい
+ません．とりあえず
+\begin{inputex}
+\newenvironment{theglossary}{\begin{theindex}}{\end{theindex}}
+\end{inputex}
+のようにしておきます．
+
+
+
+
+
+
+%\paragraph{標準パッケージの紹介}
+%\Y{alltt}, 
+%\Y{doc}, 
+%\Y{exscale}, 
+%\Y{fontenc}, 
+%\Y{graphpap}, 
+%\Y{ifthen}, 
+%\Y{inputenc}, 
+%\Y{latexsym}, 
+%\Y{makeidx}, 
+%\Y{newlfont}, 
+%\Y{oldlfont}, 
+%\Y{showidx}, 
+%\Y{syntonly}, 
+%\Y{tracefnt}
+
+%\paragraph{toolsパッケージの紹介}
+%\Y{array}, 
+%\Y{calc}, 
+%\Y{dcolumn}, 
+%\Y{delarray}, 
+%\Y{hhline}, 
+%\Y{longtable}, 
+%\Y{tabularx}, 
+%\Y{bm}, 
+%\Y{enumerate}, 
+%\Y{fontsmpl}, 
+%\Y{ftnrigth}, 
+%\Y{indentfirst}, 
+%\Y{layout}, 
+%\Y{multicol}, 
+%\Y{rawfonts}, 
+%\Y{somedefs}, 
+%\Y{showkeys}, 
+%\Y{theorem}, 
+%\Y{varioref}, 
+%\Y{verbatim}, 
+%\Y{xr}, 
+%\Y{xspace}
+
+\paragraph{丸付き文字}
+丸付き文字は色々な出力方法があります。
+\LaTeX にあらかじめ用意されているのは \C{textcircled} のみです。
+\begin{inputex}
+\let\MA\textcircled
+\MA{\scshape r}, \MA{c}, \MA{A}, \MA{8}, 
+\copyright, \textregistered
+\end{inputex}
+\begin{quote}
+\let\MA\textcircled
+\MA{\scshape r}, \MA{c}, \MA{A}, \MA{8}, 
+\copyright, \textregistered
+\end{quote}
+なんだかちょっと騙された感じがあるので、他の
+命令を探したくなります。既存のものとしては\ppl{奥村晴彦}の
+\Y{okumacro}に含まれている \C{MARU} 命令などを使うことでしょう。
+これは囲みたい文字の大きさに応じて丸を\Y{graphicx}で拡大すると
+いう方法を取っています。
+\begin{InOut}
+\usepackage{okumacro}	
+\MARU{R}, \MARU{1}, \MARU{あ}
+\end{InOut}
+
+\section{\MF ソースの Type~1 フォント化}
+自作の \MF ソースや Postscript Type~1 フォントが提供されていないフォントは
+自分で Type~1 フォントを作ってしまいましょう。
+必要になるだろうプログラムは
+\begin{itemize}
+ \item \Prog{mf2pt1}
+ \item Type~1 Utilities
+ \item \Prog{Perl}
+ \item \MP
+ \item \Prog{FontForge}
+\end{itemize}
+
+上記のプログラムを適当に導入したならば
+\begin{InTerm}
+\type{cp mf2pt1 /usr/local/bin/}
+\type{chmod +x /usr/local/bin/mf2pt1}
+\type{mpost -progname=mpost -ini mf2pt1 \\dump}
+\type{cp mf2pt1.mem /usr/share/texmf/web2c/}
+\end{InTerm}
+としてインストールを完了してください。
+あとは適当に
+\begin{InTerm}
+\type{mf2pt1 logo10.mf}
+\end{InTerm}
+とすれば
+\begin{OutTerm}
+logo10.tfm logo10.afm logo10.pfb
+\end{OutTerm}
+などが作成されるので、これらを適切なディレクトリにコピーし、
+それぞれのプログラムで適切なマップファイルを記述すれば OK.
+
+
+\section{数式アクセント (1998 年追加分)}
+文中アクセントの \C{r} を数式モードでも使えるようにしたものが
+\begin{Syntax}
+\C{mathring}\pa{要素}
+\end{Syntax}
+として追加された。
+
+\section{ハイフンの位置 (qa:30449)}
+\begin{quote}
+$>>$ 30445\par
+$>$ とりあえず，手持ちの洋書を数冊眺めた限りでは，ハイフンの前後の\par
+$>$ 文字によってハイフンの位置を変えるような処理をしている箇所は\par
+$>$ 見当たりません．
+\end{quote}
+
+ほとんどの書籍でこのような「ハイフンの位置調整」が行われていないのは事実で
+すが、Knuthのフォントデザインの姿勢を少し考えると、そうとも言い切れない気が
+します。Knuthはローマン体のハイフンの位置をエックスハイトの中心になるように
+デザインしています。ローマン体では主にアルファベット小文字にハイフンが使用さ
+れるのがその理由です（TeXではジャスティフィケーションを頻繁に行い、行末を揃え
+るグリッド指向のため、単語境界のアルファベット小文字にハイフンが多用される）。
+
+しかし、タイプライタ体では高さ（ボディ+アッセンダ）の中心になります。タイプラ
+イタ体では、ハイフンがむしろプログラミング言語の「マイナス」記号として用いられ
+ている気がします。コマンドラインオプションをタイプライタ体で示す時に妙な違和感
+をいつも感じていたのはこのせいでした (\textrm{-x}$\neq$\texttt{-x})。
+
+他のフォントのタイプライタ体はエックスハイトの中央にハイフンが来ます。
+これはその時々に応じて高さとペアカーニングを調整するのが一番良いと思います。
+
+こう考えると Knuth は確率的に多い方に基準を合わせたと考えられます。
+
+しかし、近年のフォント（モニター用の多くも同様に）はこの位置が曖昧で、
+丁度小文字でも大文字でも喧嘩の少ないデザインになっている気がします。
+
+\begin{inputex}
+% H-HがComputer Modern Romanで不自然に見えてしまうのは私だけでしょうか。
+\end{inputex}
+
+最近、ハイフンの位置の調整を、なんとか自動化できないかと考えています。
+それともこのような処理は必要ないのでしょうか。
+現在は
+\begin{enumerate}
+\item 文書の中にハイフンが登場したならば、その両隣の文字を調べる。
+\item 両隣が大文字かアラビア数字ならば、そのフォントに見合った高さの調節をする。
+\item レター`D'が左側に存在するときは\C{thinspace}程度の空白調節をする。
+\end{enumerate}
+程度の事ができればよいのかな、と考えています（他にも必要な処理がある
+のでしょうか）。TFMのペアカーニングをいじった方が早いのでしょうか。
+
+リニアスケーリングのフォントではこれが顕著に表れる気がします。
+
+\begin{inputex}
+\documentclass{article}
+\newcommand*\Hh{\lower-.25ex\hbox{-}}
+\newcommand*\ms[1][1]{$\mskip#1mu$}
+\begin{document}
+NKH-Hakodate broadcasted about SQL-95.\par
+NKH\Hh Hakodate broadcasted about SQL\Hh 95.\par
+A-B-C-D-E-F-G-H-I-J-K-L-M-N-O-P-Q-R-S-T-U-V-W-X-Y-Z\par
+A\Hh B\Hh C\Hh D\Hh E\Hh F\Hh G\Hh H\Hh I\Hh J\Hh K\Hh%
+L\Hh M\Hh N\Hh O\Hh P\Hh Q\Hh R\Hh S\Hh T\Hh U\Hh V\Hh%
+W\Hh X\Hh Y\Hh Z\par
+a-b-c-d-e-f-g-h-i-j-k-l-m-n-o-p-q-r-s-t-u-v-w-x-y-z\par
+\begin{center}
+ \begin{tabular}{lll}
+ \hline
+ A-A    & D-D                 &\\
+ A\Hh A & D\Hh D              &\\
+ A\Hh A & D\hspace{.1em}\Hh D &\verb|\hspace{.1em}|\\
+        & D\ms[1]\Hh D        &\verb|\mskip1mu| \\
+        & D\ms[2]\Hh D        &\verb|\mskip2mu| \\
+ \hline
+ \end{tabular}
+\end{center}
+\end{document}
+\end{inputex}
+
+
+\section{単項演算子と二項演算子}
+
+\begin{inputex}
+\documentclass{article}
+\begin{document}
+$-3 + 5 \neq 3 - 5$\par
+$\mbox{} -3 + 5 \neq 3 - 5$\par
+\end{document}
+\end{inputex}
+読者に分かりやすい例として。 
+
+\section{似非「太ミン・太ゴ・影付き」}
+手元にちゃんとした太明朝や太ゴシック体がないときに、応急処置的に
+それらを作成することができます。漢字に限らず仮名文字もうろこやはらい
+の部分が不様に太って、プロは絶対にやらないのですが、私はアマチュア
+なので、やっちゃいます (一言で表せば「だらしない雰囲気」になります、
+印刷した段階での出力をまったく想定していないので、きちんとデザインされた書体
+とは雲泥の差があります)。方法としてはある文字 'A' を出力すべき位置 
+\xy{$x$}{$y$}にまずその字を配置し、
+その後に \xy{$x + \alpha$}{$y + \alpha$}にそれと同じ文字を
+配置するという方法です。これならば簡単に太くできます。
+\begin{inputex}
+\def\huto#1{\ifvmode\leavevmode\fi\hbox{%
+  \hbox to 0.05pt{#1\hss}\hbox to 0.05pt{#1\hss}%
+  \hbox to 0.05pt{#1\hss}\hbox{#1}}%
+}
+\end{inputex}
+太さなどは好みに応じて変更すれば良いので、適宜 0.05\,pt などの間隔を
+変更します。
+\begin{inputex}
+\mcfamily ほげほげ、ほげ iiiiiii。\par
+\mcfamily ほげほげ、\huto{ほげ} iiiiiii。\par
+\gtfamily ほげほげ、ほげ iiiiiii。\par
+\gtfamily ほげほげ、\huto{ほげ} iiiiiii。\par
+\end{inputex}
+
+さて、お次ぎは「影付き」文字と呼ばれるものです。これも最初からきちんと
+デザインされた書体を用いるのが正解なのですが、ここでは似非でそれを
+実現します。原理は上記の似非太ミンと同じことです。
+\begin{inputex}
+%\usepackage{color}
+\newcommand*\kage[1]{\ifvmode\leavevmode\fi
+  \hbox to 0.25pt{\color{gray}#1\hss}\hbox{\color{cyan}#1}%
+}
+ほげほげ、影付きになって欲しいなぁ。\par
+ほげほげ、\kage{影付きになって欲しいなぁ}。
+\end{inputex}
+このような影付きの文字はスクリーン上ではうまい具合に出力されますが、
+印刷段階では使いものにならない場合が多いので、似非文字装飾はスライド
+などにとどめるのが良いでしょう。
+
+枠付で影付の文字を出力するにはどうすれば良いでしょうか?
+枠を付けるためには、目的の文字列のフォントサイズ X よりも、
+枠の太さ分だけが大きいフォントサイズ $x \times \alpha$ を下に重ねれば
+良いことになります。あとは上記と同じ様に影を付けるだけです。
+これは宿題にしておきましょう。
+
+もっと高度な文字装飾を行なうためには PostScript special を直接書くとか
+\Y{PSTricks} を使うなどのデバイス依存のことを行なわなければなりません。
+
+\section{均等割付}
+よく町内会のチラシや墨一色のワープロ文書では均等割付と呼ばれる
+機能があります。\LaTeX においてこれを簡単に行なうには
+\begin{Syntax}
+\C{makebox}\opa{幅}\opa{要素の揃え}\pa{文章要素}
+\end{Syntax}
+を使うことが第一に考えられます。\C{makebox} は中身を広げる (spread) という
+機能があるので、これを使い
+\begin{inputex}
+\newcommand*\warituke[2]{\makebox[#1][s]{#2}}
+\begin{description}
+ \item[\warituke{6zw}{集合場所}] てきとうな場所。
+ \item[\warituke{6zw}{日時}] しかるべき時に。
+ \item[\warituke{6zw}{持参するもの}] 適切なもの。
+ \item[\warituke{6zw}{その他}] てきとうに。
+\end{description}
+\end{inputex}
+とすれば、全角 6 文字分で \E{description} 環境のラベルを均等割付に
+できます。しかし、これでは \C{makebox} (\C{hbox}) の中が underfull に
+なってしまうので、適宜グルーを挿入してあげましょう。これには
+\C{@tfor} なる文字列処理を行なうくり返し命令でも使います。
+\begin{inputex}
+\newcommand*\warituke[2]{\makebox[#1][s]{#2}}
+\begin{description}
+ \item[\warituke{6zw}{集合場所}]
+ \item[\warituke{6zw}{日時}]
+ \item[\warituke{6zw}{持参するもの}]
+ \item[\warituke{6zw}{その他}]
+\end{description}
+\makeatletter
+\renewcommand*\warituke[2]{%
+ \makebox[#1][s]{%
+   \@tempcnta=\z@
+   \@tfor\member:=#2\do{\advance\@tempcnta\@ne}%
+   \@tfor\member:=#2\do{%
+      \advance\@tempcnta\m@ne
+      \ifnum\@tempcnta=\z@
+         \member
+      \else
+         \member\hfil
+      \fi
+   }%
+ }%
+}
+\makeatother
+\begin{description}
+ \item[\warituke{6zw}{集合場所}]
+ \item[\warituke{6zw}{日時}]
+ \item[\warituke{6zw}{持参するもの}]
+ \item[\warituke{6zw}{Etc}]
+\end{description}
+\end{inputex}
+最後の文字の後にグルーは必要ないので、文字数をカウントしています。
+別に日本語じゃなくても OK で、適宜空白をいれる必要はありません。
+
+割り付け幅を何度も記述するのは面倒なので、その場所における幅を
+保存する変数 \C{warihaba} を定義しましょうか。全角幅で割り付けすることを
+前提としているならばカウンタでも構いません (\cmd{c@hoge} zw)。
+\begin{inputex}
+\makeatletter
+\newdimen\kintou@warihaba
+\newcommand*\warihaba[1]{\kintou@warihaba=#1\relax}
+\newcommand*\warituke[2][\kintou@warihaba]{%
+ \ifvmode\leavevmode\fi
+ \hb@xt@ #1{%
+   \@tempcnta=\z@
+   \@tfor\member:=#2\do{\advance\@tempcnta\@ne}%
+   \@tfor\member:=#2\do{%
+      \advance\@tempcnta\m@ne
+      \ifnum\@tempcnta=\z@
+         \member
+      \else
+         \member\hfil
+      \fi
+   }%
+ }%
+}
+\makeatother
+\begin{description}
+ \warihaba{7zw}
+ \item[\warituke{集合場所}] どこでもいいでつ。
+ \item[\warituke{日時}] いつでもいいでつ。
+ \item[\warituke{持参するもの}] なんでもいいでつ。
+ \item[\warituke{その他}] てきとうに。
+ \item[\warituke{Place}] 英語でつか?
+\end{description}
+\end{inputex}
+
+%\section{索引作成}
+%%//限られた人しか必要としないので出版編で紹介しましょう。
+%
+%ここでは索引ページや辞書などに見られるような爪を付けることを
+%考えます。索引のページのページスタイルは
+%
+%%|偶数頁小口                  | 偶数頁ノド| 奇数頁ノド | 奇数頁小口 |
+%%|<頁先頭の語句>  |   <頁末尾の語句>  | <頁先頭の語句> | <頁末尾の語句> |
+%
+%というものにしたいと考えます。しかし、これを実現するためにはその
+%ページの末尾を知る (ページの取得) を試みなければならないため、まずは
+%\begin{quote}
+%A, B,\ldots, X, あ, い,\ldots, わ, を, ん
+%\end{quote}
+%という索引頭文字をノド部分に表示させることを考えましょう。
+%あらかじめ簡単にするために索引用スタイルファイル \Va{file}{ist} を次のように
+%定義したとします (\Prog{mendex} を使うことを前提としています)。
+%\begin{inputex}
+%lethead_flag            1
+%symhead_positive       "数字/記号"
+%letter_head            2
+%delim_0                        " \\dotfill\\ "
+%delim_1                        " \\dotfill\\ "
+%delim_2                        " \\dotfill\\ "
+%lethead_prefix "\\underline{\\hbox to \\linewidth{\\large\\textbf{\\thumb{"
+%lethead_suffix "}\\hfill}}}\\nopagebreak"
+%\end{inputex}
+%\C{thumb} という命令は \verb|\thumb{A}|, \verb|\thum{B}| のように更新さ
+%れるので、あとは索引の頭文字の受け皿を作ります。
+%
+%\begin{inputex}
+%(執筆中)
+%\end{inputex}
+
+\section{1行を文字で埋める。}
+かなりてきとうに 
+\begin{inputex}
+ (行長 / 全角 1 文字の幅)
+\end{inputex}
+を求めて、あとは \C{noindent} でもかましておけば
+\begin{inputex}
+\makeatletter
+\def\hoge{\noindent%
+   \@tempcntb=\number\linewidth
+   \divide \@tempcntb by \number\cwd
+   \@tempcnta=\z@
+   \@whilenum\@tempcnta<\@tempcntb\do{あ\advance\@tempcnta\@ne}}
+\makeatother
+\end{inputex}
+と定義できるので、
+\begin{inputex}
+\par\hoge\par
+\end{inputex}
+とかやればなんとかなるでしょう。
+
+%ほかに \cleaders をつかって \Afill を作る。
+
+
+\section{リットルとかメートルを一文字に納める}
+\begin{inputex}
+\documentclass[a4j,11pt,papersize,draft]{jsarticle}
+\makeatletter
+\newcommand*\ju[4]{%
+   \bgroup
+      \offinterlineskip% \vbox 中における skip を無効にする
+      \ifvmode\leavevmode\fi
+      \vbox{%
+         \hbox to \cwd{\hss\hbox{\tiny #1}\hbox{\tiny #2}\hss}%
+         \hbox to \cwd{\hss\hbox{\tiny #3}\hbox{\tiny #4}\hss}%
+      }%
+   \egroup
+}
+\makeatother
+\begin{document}
+リットル、メートルを、全角 1 文字分に納める、50\ju リットルとか
+30\ju メートル。
+\end{document}
+\end{inputex}
+
+\section{どうせなら割注もだしたい}
+リットルのように 4 文字だけじゃなくて、割注も出力したい。一応縦組にも対応。
+\begin{inputex}
+\documentclass[a4j]{jsarticle}
+%\documentclass[a4j]{tarticle}
+\makeatletter
+%
+\def\@left@warichu@delim{（}
+\def\@right@warichu@delim{）}
+\def\leftwaridelim#1{\gdef\@left@warichu@delim{#1}}
+\def\rightwaridelim#1{\gdef\@right@warichu@delim{#1}}
+%
+\def\warichu#1{%
+   \@tempcnta \z@
+   \@tfor\member:=#1\do{\advance\@tempcnta\@ne}%
+   \ifodd\@tempcnta\relax \advance\@tempcnta\@ne \fi
+   \divide\@tempcnta\tw@
+   \let\@first@line\@empty
+   \let\@second@line\@empty
+   \@tempcntb \z@
+   \@tfor\member:=#1\do{%
+      \ifnum \@tempcntb<\@tempcnta
+         \edef\@first@line{\@first@line\member}%
+      \else
+         \edef\@second@line{\@second@line\member}%
+      \fi
+      \advance \@tempcntb \@ne
+   }%
+   \ifvmode\leavevmode\fi
+   \@left@warichu@delim
+   \iftdir \lower \Cdp \fi % ここが縦組の時に真になる
+   \hbox{%
+      \bgroup
+         \offinterlineskip
+         \vbox{%
+            \hbox{\tiny\@first@line}%
+            \hbox{\tiny\@second@line}%
+         }%
+      \egroup
+   }%
+   \@right@warichu@delim
+}%
+\makeatother
+\begin{document}
+ドナルド・クヌース\warichu{計算幾科学において偉大な功績を残した人物の一
+人}は我々が毎日毎晩使っているあの\TeX を開発した科学者である。\par
+\end{document}
+\end{inputex}
+
+\section{縦組で、脚注は横組}
+
+\begin{inputex}
+\documentclass{tarticle}
+\marginparpush=0pt
+\pagestyle{empty}
+\makeatletter
+\def\hoge{\@ifnextchar[{\@hoge}{\@hoge[200]}}
+\def\@hoge[#1]{\@tempcnta=\z@
+  \@whilenum \@tempcnta <#1 \do{あ\advance\@tempcnta\@ne}}
+%
+\newcounter{mparchu}[section]
+\renewcommand\themparchu{\@arabic\c@mparchu}
+\def\tatekyakuchu{%
+  \@ifnextchar[{\@tatekyakuchu}{\@tatekyakuchu[\@empty]}}
+\def\@tatekyakuchu[#1]#2{%
+   \stepcounter{mparchu}%
+   \raise\Cht\hb@xt@ \z@{\hss\scriptsize \rensuji{\themparchu}}%
+   \marginpar{%
+      \setlength\unitlength{\Cvs}%
+      \begin{picture}(0,0)%
+         \put(\value{mparchu},0){%
+            \ifx#1\@empty
+               \makebox(0,0)[br]{\hb@xt@ .5\textwidth{\yoko
+                  $^\themparchu$ #2\hss}}%
+            \else
+               \makebox(0,0)[br]{\hb@xt@ .5\textwidth{\yoko
+                  $^\themparchu$ #2\dotfill#1}}%
+            \fi
+        }%
+      \end{picture}%
+  }%
+}
+\makeatother
+\begin{document}
+\section{ほげ\label{sec:hoge}}
+\hoge\tatekyakuchu{あれあれこれこれ。}。\par
+\hoge\tatekyakuchu{うまうましかじか。}。\par
+\hoge\footnote{これは普通の脚注。}。\par
+\hoge\tatekyakuchu{それは傍注と呼ばれるそうだ。}。
+\hoge[20]\tatekyakuchu{それは脚注と呼ばれるそうだ。}。
+\hoge[20]\tatekyakuchu[\ref{sec:hoge}]{プレー2}。
+\end{document}
+\end{inputex}
+
+
+\endinput
+
+ばあい→場合, ok
+くくる→括る, ok
+いいます→言います, ok
+ほど→程, ok
+たいして→対して, ok
+あげられます→挙げられます, ok
+
+かた→方, ok
+方→ほう, ok
+上→うえ, ok
+とおり→通り, ok
+どおり→通り, ok
+様に→ように, ok
+下さい→ください, ok
+事→こと, ok
+時→とき, ok
+物→もの, ok
+様→よう, ok
+所→ところ, ok
+等→など, ok
+位→くらい, ok
+間→あいだ, ok
+出来→でき, ok
+
+
